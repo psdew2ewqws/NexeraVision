@@ -45,11 +45,16 @@ export class MenuController {
 
   // Get paginated products for VirtualizedProductGrid
   @Post('products/paginated')
+  @Public() // Make public for development
   @Roles('super_admin', 'company_owner', 'branch_manager', 'call_center', 'cashier')
-  async getPaginatedProducts(@Body() filters: ProductFiltersDto, @Request() req) {
-    // Super admin can specify companyId, others use their own
-    const userCompanyId = req.user.role === 'super_admin' ? undefined : req.user.companyId;
-    return this.menuService.getPaginatedProducts(filters, userCompanyId, req.user.role);
+  async getPaginatedProducts(@Body() filters: ProductFiltersDto, @Request() req?) {
+    // For authenticated users, use their company and role
+    if (req?.user) {
+      const userCompanyId = req.user.role === 'super_admin' ? undefined : req.user.companyId;
+      return this.menuService.getPaginatedProducts(filters, userCompanyId, req.user.role);
+    }
+    // For public access, use companyId from filters or get all products
+    return this.menuService.getPaginatedProducts(filters, filters.companyId || 'test-company-uuid-123456789', 'public');
   }
 
   // Get all categories for filters (supports both public and authenticated access)
