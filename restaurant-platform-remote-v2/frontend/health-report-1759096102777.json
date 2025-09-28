@@ -1,0 +1,725 @@
+{
+  "timestamp": "2025-09-28T21:46:54.542Z",
+  "summary": {
+    "total": 46,
+    "passed": 18,
+    "failed": 28,
+    "skipped": 0,
+    "passRate": "39.1"
+  },
+  "pages": [
+    {
+      "path": "/",
+      "name": "Home Page",
+      "category": "core",
+      "critical": false,
+      "requiresAuth": false,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 961,
+      "error": null,
+      "timestamp": "2025-09-28T21:46:54.605Z"
+    },
+    {
+      "path": "/login",
+      "name": "Login Page",
+      "category": "auth",
+      "critical": false,
+      "requiresAuth": false,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 71,
+      "error": null,
+      "timestamp": "2025-09-28T21:46:55.570Z"
+    },
+    {
+      "path": "/dashboard",
+      "name": "Main Dashboard",
+      "category": "core",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 1428,
+      "error": null,
+      "timestamp": "2025-09-28T21:46:55.641Z"
+    },
+    {
+      "path": "/dashboard/unified",
+      "name": "Unified Dashboard",
+      "category": "core",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 1569,
+      "error": null,
+      "timestamp": "2025-09-28T21:46:57.070Z"
+    },
+    {
+      "path": "/menu/products",
+      "name": "Products Page (CRITICAL FIX TARGET)",
+      "category": "menu",
+      "critical": true,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 202,
+      "error": null,
+      "timestamp": "2025-09-28T21:46:58.639Z"
+    },
+    {
+      "path": "/menu/availability",
+      "name": "Menu Availability",
+      "category": "menu",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 495,
+      "error": null,
+      "timestamp": "2025-09-28T21:46:58.842Z"
+    },
+    {
+      "path": "/menu/promotions",
+      "name": "Menu Promotions",
+      "category": "menu",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 742,
+      "error": null,
+      "timestamp": "2025-09-28T21:46:59.337Z"
+    },
+    {
+      "path": "/menu/builder",
+      "name": "Menu Builder",
+      "category": "menu",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 594,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:00.079Z"
+    },
+    {
+      "path": "/menu/list",
+      "name": "Menu List",
+      "category": "menu",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 427,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:00.674Z"
+    },
+    {
+      "path": "/menu/platform-builder",
+      "name": "Platform Builder",
+      "category": "menu",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 3262,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:01.102Z"
+    },
+    {
+      "path": "/settings/users",
+      "name": "User Management",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 774,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:04.364Z"
+    },
+    {
+      "path": "/settings/companies",
+      "name": "Company Management",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 626,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:05.138Z"
+    },
+    {
+      "path": "/settings/printing",
+      "name": "Printing Settings",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 946,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:05.765Z"
+    },
+    {
+      "path": "/settings/thermal-printer-templates",
+      "name": "Thermal Templates",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 559,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:06.711Z"
+    },
+    {
+      "path": "/settings/template-builder",
+      "name": "Template Builder",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 996,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:07.270Z"
+    },
+    {
+      "path": "/settings/delivery-providers",
+      "name": "Delivery Providers",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 593,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:08.267Z"
+    },
+    {
+      "path": "/settings/platform-settings",
+      "name": "Platform Settings",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 1201,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:08.861Z"
+    },
+    {
+      "path": "/settings/delivery",
+      "name": "Delivery Settings",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "accessible",
+      "statusCode": 200,
+      "responseTime": 3404,
+      "error": null,
+      "timestamp": "2025-09-28T21:47:10.065Z"
+    },
+    {
+      "path": "/settings/integration-management",
+      "name": "Integration Management",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 5726,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:13.469Z"
+    },
+    {
+      "path": "/settings/platform-sync",
+      "name": "Platform Sync",
+      "category": "settings",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 1170,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:19.196Z"
+    },
+    {
+      "path": "/operations/live-orders",
+      "name": "Live Orders",
+      "category": "operations",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 1799,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:20.366Z"
+    },
+    {
+      "path": "/operations/center",
+      "name": "Operations Center",
+      "category": "operations",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 2739,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:22.166Z"
+    },
+    {
+      "path": "/branches",
+      "name": "Branches Management",
+      "category": "core",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 2072,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:24.905Z"
+    },
+    {
+      "path": "/analytics/dashboard",
+      "name": "Analytics Dashboard",
+      "category": "analytics",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 17214,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:26.977Z"
+    },
+    {
+      "path": "/templates/ai-generator",
+      "name": "AI Template Generator",
+      "category": "templates",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 9297,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:44.191Z"
+    },
+    {
+      "path": "/products",
+      "name": "Products Overview",
+      "category": "core",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 2930,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:53.488Z"
+    },
+    {
+      "path": "/debug-auth",
+      "name": "Debug Authentication",
+      "category": "debug",
+      "critical": false,
+      "requiresAuth": false,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 2674,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:56.418Z"
+    },
+    {
+      "path": "/debug-auth-test",
+      "name": "Debug Auth Test",
+      "category": "debug",
+      "critical": false,
+      "requiresAuth": false,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 2704,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:47:59.092Z"
+    },
+    {
+      "path": "/test-platform-preview",
+      "name": "Platform Preview Test",
+      "category": "debug",
+      "critical": false,
+      "requiresAuth": false,
+      "status": "server_error",
+      "statusCode": 500,
+      "responseTime": 2729,
+      "error": "Internal server error (500)",
+      "timestamp": "2025-09-28T21:48:01.796Z"
+    }
+  ],
+  "apis": [
+    {
+      "path": "/auth/profile",
+      "name": "Get Profile",
+      "method": "GET",
+      "category": "auth",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 8,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.532Z"
+    },
+    {
+      "path": "/auth/login",
+      "name": "Login",
+      "method": "POST",
+      "category": "auth",
+      "critical": false,
+      "requiresAuth": false,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 39,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.541Z"
+    },
+    {
+      "path": "/menu/categories",
+      "name": "Get Categories",
+      "method": "GET",
+      "category": "menu",
+      "critical": true,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 19,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.581Z"
+    },
+    {
+      "path": "/menu/products/paginated",
+      "name": "Get Paginated Products",
+      "method": "POST",
+      "category": "menu",
+      "critical": true,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 12,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.600Z"
+    },
+    {
+      "path": "/menu/products",
+      "name": "Get All Products",
+      "method": "GET",
+      "category": "menu",
+      "critical": true,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 8,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.613Z"
+    },
+    {
+      "path": "/companies",
+      "name": "Get Companies",
+      "method": "GET",
+      "category": "core",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 9,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.621Z"
+    },
+    {
+      "path": "/branches",
+      "name": "Get Branches",
+      "method": "GET",
+      "category": "core",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 12,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.631Z"
+    },
+    {
+      "path": "/users",
+      "name": "Get Users",
+      "method": "GET",
+      "category": "core",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 7,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.643Z"
+    },
+    {
+      "path": "/printing/printers",
+      "name": "Get Printers",
+      "method": "GET",
+      "category": "printing",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 10,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.650Z"
+    },
+    {
+      "path": "/printing/health",
+      "name": "Printer Health",
+      "method": "GET",
+      "category": "printing",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 8,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.661Z"
+    },
+    {
+      "path": "/licenses/validate",
+      "name": "License Validation",
+      "method": "GET",
+      "category": "licenses",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 4,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.670Z"
+    },
+    {
+      "path": "/licenses/status",
+      "name": "License Status",
+      "method": "GET",
+      "category": "licenses",
+      "critical": false,
+      "requiresAuth": true,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 5,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.674Z"
+    },
+    {
+      "path": "/health",
+      "name": "System Health",
+      "method": "GET",
+      "category": "system",
+      "critical": false,
+      "requiresAuth": false,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 6,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.680Z"
+    },
+    {
+      "path": "/",
+      "name": "API Root",
+      "method": "GET",
+      "category": "system",
+      "critical": false,
+      "requiresAuth": false,
+      "status": "not_found",
+      "statusCode": 404,
+      "responseTime": 13,
+      "error": "Endpoint not found (404)",
+      "timestamp": "2025-09-28T21:48:04.686Z"
+    }
+  ],
+  "services": {
+    "frontend": {
+      "url": "http://localhost:3000",
+      "status": "online"
+    },
+    "backend": {
+      "url": "http://localhost:3001",
+      "status": "offline"
+    },
+    "printerMaster": {
+      "url": "http://localhost:8182",
+      "status": "offline"
+    }
+  },
+  "errors": [
+    {
+      "type": "page",
+      "name": "Integration Management (/settings/integration-management)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "Platform Sync (/settings/platform-sync)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "Live Orders (/operations/live-orders)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "Operations Center (/operations/center)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "Branches Management (/branches)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "Analytics Dashboard (/analytics/dashboard)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "AI Template Generator (/templates/ai-generator)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "Products Overview (/products)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "Debug Authentication (/debug-auth)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "Debug Auth Test (/debug-auth-test)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "page",
+      "name": "Platform Preview Test (/test-platform-preview)",
+      "error": "Internal server error (500)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "Get Profile (GET /auth/profile)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "Login (POST /auth/login)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "Get Categories (GET /menu/categories)",
+      "error": "Endpoint not found (404)",
+      "critical": true
+    },
+    {
+      "type": "api",
+      "name": "Get Paginated Products (POST /menu/products/paginated)",
+      "error": "Endpoint not found (404)",
+      "critical": true
+    },
+    {
+      "type": "api",
+      "name": "Get All Products (GET /menu/products)",
+      "error": "Endpoint not found (404)",
+      "critical": true
+    },
+    {
+      "type": "api",
+      "name": "Get Companies (GET /companies)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "Get Branches (GET /branches)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "Get Users (GET /users)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "Get Printers (GET /printing/printers)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "Printer Health (GET /printing/health)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "License Validation (GET /licenses/validate)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "License Status (GET /licenses/status)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "System Health (GET /health)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "api",
+      "name": "API Root (GET /)",
+      "error": "Endpoint not found (404)",
+      "critical": false
+    },
+    {
+      "type": "service",
+      "name": "PrinterMaster: PrinterMaster Health (GET /health)",
+      "error": "connect ECONNREFUSED ::1:8182"
+    },
+    {
+      "type": "service",
+      "name": "PrinterMaster: Available Printers (GET /printers)",
+      "error": "connect ECONNREFUSED ::1:8182"
+    },
+    {
+      "type": "service",
+      "name": "PrinterMaster: Service Status (GET /status)",
+      "error": "connect ECONNREFUSED ::1:8182"
+    }
+  ]
+}

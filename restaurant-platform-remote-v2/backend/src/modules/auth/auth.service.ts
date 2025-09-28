@@ -57,95 +57,114 @@ export class AuthService {
   }
 
   async login(emailOrUsername: string, password: string, req?: any) {
-    const ipAddress = req?.ip || req?.connection?.remoteAddress;
-    const userAgent = req?.get('User-Agent');
+    try {
+      console.log('[AUTH] Login attempt for:', emailOrUsername);
 
-    // Try to find user by email first, then by username
-    let user = await this.prisma.user.findUnique({
-      where: { email: emailOrUsername },
-      include: {
-        company: true,
-        branch: true,
-      },
-    });
+      const ipAddress = req?.ip || req?.connection?.remoteAddress || 'unknown';
+      const userAgent = req?.get ? req.get('User-Agent') : req?.headers?.['user-agent'] || 'unknown';
 
-    // If not found by email and the input doesn't look like an email, try username
-    if (!user && !emailOrUsername.includes('@')) {
-      user = await this.prisma.user.findUnique({
-        where: { username: emailOrUsername },
+      console.log('[AUTH] IP:', ipAddress, 'UserAgent:', userAgent);
+
+      // Try to find user by email first, then by username
+      let user = await this.prisma.user.findUnique({
+        where: { email: emailOrUsername },
         include: {
           company: true,
           branch: true,
         },
       });
-    }
 
-    if (!user || user.status !== 'active') {
-      // Log failed login attempt
-      if (user) {
-        await this.logActivity(user.id, 'login_failed', null, null, 'Failed login attempt - inactive account', ipAddress, userAgent, false);
+      console.log('[AUTH] Found user by email:', !!user);
+
+      // If not found by email and the input doesn't look like an email, try username
+      if (!user && !emailOrUsername.includes('@')) {
+        user = await this.prisma.user.findUnique({
+          where: { username: emailOrUsername },
+          include: {
+            company: true,
+            branch: true,
+          },
+        });
+        console.log('[AUTH] Found user by username:', !!user);
       }
-      throw new UnauthorizedException('Invalid credentials');
-    }
 
-    // Temporarily bypass password validation for testing
-    const isPasswordValid = password === 'test123' || await bcrypt.compare(password, user.passwordHash);
-    
-    if (!isPasswordValid) {
-      // Log failed login attempt
-      await this.logActivity(user.id, 'login_failed', null, null, 'Failed login attempt - invalid password', ipAddress, userAgent, false);
-      throw new UnauthorizedException('Invalid credentials');
-    }
+      if (!user || user.status !== 'active') {
+        console.log('[AUTH] User not found or inactive:', user?.status);
+        // Log failed login attempt
+        if (user) {
+          await this.logActivity(user.id, 'login_failed', null, null, 'Failed login attempt - inactive account', ipAddress, userAgent, false);
+        }
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
-    // Update last login
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { 
-        lastLoginAt: new Date(),
-        lastLoginIp: ipAddress,
-        failedLoginAttempts: 0
-      },
-    });
+      // Temporarily bypass password validation for testing
+      const isPasswordValid = password === 'test123' || await bcrypt.compare(password, user.passwordHash);
 
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      companyId: user.companyId,
-      branchId: user.branchId,
-    };
+      console.log('[AUTH] Password valid:', isPasswordValid);
 
-    const accessToken = this.jwtService.sign(payload);
-    const tokenHash = await bcrypt.hash(accessToken, 10);
+      if (!isPasswordValid) {
+        // Log failed login attempt
+        await this.logActivity(user.id, 'login_failed', null, null, 'Failed login attempt - invalid password', ipAddress, userAgent, false);
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
-    // Create user session
-    const session = await this.prisma.userSession.create({
-      data: {
-        userId: user.id,
-        tokenHash,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        ipAddress,
-        userAgent,
-        deviceType: this.getDeviceType(userAgent),
-      },
-    });
+      // Update last login
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          lastLoginAt: new Date(),
+          lastLoginIp: ipAddress,
+          failedLoginAttempts: 0
+        },
+      });
 
-    // Log successful login
-    await this.logActivity(user.id, 'login_success', null, null, 'User logged in successfully', ipAddress, userAgent, true);
-
-    return {
-      accessToken,
-      user: {
-        id: user.id,
+      const payload = {
+        sub: user.id,
         email: user.email,
-        name: user.name,
         role: user.role,
         companyId: user.companyId,
         branchId: user.branchId,
-        company: user.company,
-        branch: user.branch,
-      },
-    };
+      };
+
+      const accessToken = this.jwtService.sign(payload);
+      const tokenHash = await bcrypt.hash(accessToken, 10);
+
+      // Create user session
+      const session = await this.prisma.userSession.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          ipAddress,
+          userAgent,
+          deviceType: this.getDeviceType(userAgent),
+        },
+      });
+
+      // Log successful login
+      await this.logActivity(user.id, 'login_success', null, null, 'User logged in successfully', ipAddress, userAgent, true);
+
+      return {
+        accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          companyId: user.companyId,
+          branchId: user.branchId,
+          company: user.company,
+          branch: user.branch,
+        },
+      };
+    } catch (error) {
+      console.error('[AUTH] Login error:', error);
+      console.error('[AUTH] Error stack:', error.stack);
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Authentication failed');
+    }
   }
 
   async register(data: {

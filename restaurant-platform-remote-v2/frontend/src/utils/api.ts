@@ -16,7 +16,7 @@ export const createApiUrl = (endpoint: string): string => {
 
 // Common headers for API requests
 export const getAuthHeaders = (): Record<string, string> => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('auth-token');
   return {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),

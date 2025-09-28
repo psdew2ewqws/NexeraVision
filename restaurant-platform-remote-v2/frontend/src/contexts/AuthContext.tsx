@@ -76,6 +76,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         } else {
           console.log('AuthContext: No stored auth data found')
+          // Development mode auto-authentication for testing
+          if (process.env.NODE_ENV === 'development') {
+            console.log('AuthContext: Setting up development test user');
+            const testUser = {
+              id: 'test-user-id',
+              email: 'admin@test.com',
+              role: 'super_admin',
+              companyId: 'test-company-uuid-123456789',
+              branchId: null,
+              name: 'Test Admin'
+            };
+            const testToken = 'test-token-development';
+
+            localStorage.setItem('user', JSON.stringify(testUser));
+            localStorage.setItem('auth-token', testToken);
+            setUser(testUser);
+            setToken(testToken);
+          }
         }
       } catch (error) {
         console.error('AuthContext: Error hydrating auth state:', error)
@@ -114,10 +132,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+      const apiUrl = baseUrl.includes('/api/v1') ? baseUrl : `${baseUrl}/api/v1`
       console.log('AuthContext: Attempting login with API URL:', apiUrl)
-      
-      const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
+
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

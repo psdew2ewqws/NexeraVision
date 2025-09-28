@@ -193,7 +193,8 @@ export async function apiCall<T>(
     }
 
     // Make the API call
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const baseUrl = envUrl.includes('/api/v1') ? envUrl : `${envUrl}/api/v1`;
     const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
 
     const response = await fetchWithRetry(url, {
@@ -266,7 +267,7 @@ export async function apiCall<T>(
 // Specific API helpers for menu operations
 export const menuApi = {
   getCategories: () => apiCall<{ categories: import('../types/menu').MenuCategory[] }>(
-    '/api/v1/menu/categories',
+    '/menu/categories',
     {},
     {
       validateResponse: (data) => Array.isArray(data?.categories),
@@ -275,7 +276,7 @@ export const menuApi = {
   ),
 
   getTags: () => apiCall<{ tags: string[] }>(
-    '/api/v1/menu/tags',
+    '/menu/tags',
     {},
     {
       validateResponse: (data) => Array.isArray(data?.tags),
@@ -287,7 +288,7 @@ export const menuApi = {
     products: import('../types/menu').MenuProduct[];
     pagination: { hasMore: boolean; total: number; page: number; }
   }>(
-    '/api/v1/menu/products/paginated',
+    '/menu/products/paginated',
     {
       method: 'POST',
       body: JSON.stringify(filters)
@@ -299,13 +300,13 @@ export const menuApi = {
   ),
 
   deleteProduct: (productId: string) => apiCall(
-    `/api/v1/menu/products/${productId}`,
+    `/menu/products/${productId}`,
     { method: 'DELETE' },
     { showErrorToast: false } // Handle toast in component
   ),
 
   bulkUpdateProducts: (productIds: string[], updates: any) => apiCall(
-    '/api/v1/menu/products/bulk-status',
+    '/menu/products/bulk-status',
     {
       method: 'POST',
       body: JSON.stringify({ productIds, ...updates })
