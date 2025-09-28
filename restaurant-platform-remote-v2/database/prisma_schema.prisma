@@ -1,0 +1,1532 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id                    String             @id @default(uuid())
+  name                  String
+  slug                  String             @unique
+  logo                  String?
+  businessType          String?            @default("restaurant") @map("business_type")
+  timezone              String             @default("Asia/Amman")
+  defaultCurrency       String             @default("JOD") @map("default_currency")
+  status                CompanyStatus      @default(trial)
+  subscriptionPlan      String?            @default("basic") @map("subscription_plan")
+  subscriptionExpiresAt DateTime?          @map("subscription_expires_at")
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+  deletedAt             DateTime?          @map("deleted_at")
+  createdBy             String?            @map("created_by")
+  updatedBy             String?            @map("updated_by")
+  branches              Branch[]
+  licenses              License[]
+  menuCategories        MenuCategory[]
+  menuProducts          MenuProduct[]
+  modifierCategories    ModifierCategory[]
+  modifiers             Modifier[]
+  promotions            Promotion[]
+  promotionCampaigns    PromotionCampaign[]
+  promotionTemplates    PromotionTemplate[]
+  users                 User[]
+  deliveryProviders     DeliveryProvider[]
+  providerOrders        DeliveryProviderOrder[]
+  companyProviderConfigs CompanyProviderConfig[]
+  deliveryErrorLogs     DeliveryErrorLog[]
+  webhookDeliveryLogs   WebhookDeliveryLog[]
+  deliveryAnalytics     DeliveryProviderAnalytics[]
+  printers              Printer[]
+  printJobs             PrintJob[]
+  printTemplates        PrintTemplate[]
+  branchAvailabilities  BranchAvailability[]
+  availabilityAuditLogs AvailabilityAuditLog[]
+  availabilityTemplates AvailabilityTemplate[]
+  availabilityAlerts    AvailabilityAlert[]
+
+  @@index([status])
+  @@index([subscriptionExpiresAt])
+  @@index([businessType, status])
+  @@map("companies")
+}
+
+model License {
+  id            String        @id @default(uuid())
+  companyId     String        @map("company_id")
+  status        LicenseStatus @default(active)
+  startDate     DateTime      @default(now()) @map("start_date")
+  expiresAt     DateTime      @map("expires_at")
+  features      Json?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  createdBy     String?       @map("created_by")
+  updatedBy     String?       @map("updated_by")
+  daysRemaining Int           @default(0) @map("days_remaining")
+  lastChecked   DateTime?     @map("last_checked")
+  renewedAt     DateTime?     @map("renewed_at")
+  totalDays     Int           @default(30) @map("total_days")
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+  @@index([status, expiresAt])
+  @@index([expiresAt])
+  @@index([daysRemaining])
+  @@map("licenses")
+}
+
+model Branch {
+  id                 String         @id @default(uuid())
+  companyId          String         @map("company_id")
+  name               String
+  phone              String?
+  email              String?
+  address            String?
+  city               String?
+  country            String?
+  latitude           Decimal?       @db.Decimal(10, 8)
+  longitude          Decimal?       @db.Decimal(11, 8)
+  isDefault          Boolean        @default(false) @map("is_default")
+  isActive           Boolean        @default(true) @map("is_active")
+  allowsOnlineOrders Boolean        @default(true) @map("allows_online_orders")
+  allowsDelivery     Boolean        @default(true) @map("allows_delivery")
+  allowsPickup       Boolean        @default(true) @map("allows_pickup")
+  timezone           String         @default("Asia/Amman")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  deletedAt          DateTime?      @map("deleted_at")
+  createdBy          String?        @map("created_by")
+  updatedBy          String?        @map("updated_by")
+  nameAr             String         @map("name_ar")
+  openTime           String?        @map("open_time")
+  closeTime          String?        @map("close_time")
+  company            Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  users              User[]
+  deliveryZones      DeliveryZone[]
+  orders             Order[]
+  providerOrders     DeliveryProviderOrder[]
+  branchProviderMappings BranchProviderMapping[]
+  printers           Printer[]
+  printJobs          PrintJob[]
+  branchAvailabilities BranchAvailability[]
+  availabilityAlerts AvailabilityAlert[]
+
+  @@index([companyId, isActive])
+  @@index([companyId, isDefault])
+  @@index([city, isActive])
+  @@index([latitude, longitude])
+  @@index([allowsDelivery, allowsOnlineOrders])
+  @@map("branches")
+}
+
+model User {
+  id                  String            @id @default(uuid())
+  name                String
+  email               String            @unique
+  phone               String?
+  avatarUrl           String?           @map("avatar_url")
+  passwordHash        String            @map("password_hash")
+  pin                 String?
+  emailVerifiedAt     DateTime?         @map("email_verified_at")
+  role                UserRole
+  status              UserStatus        @default(active)
+  companyId           String            @map("company_id")
+  branchId            String?           @map("branch_id")
+  language            String            @default("en")
+  timezone            String            @default("Asia/Amman")
+  lastLoginAt         DateTime?         @map("last_login_at")
+  lastLoginIp         String?           @map("last_login_ip")
+  failedLoginAttempts Int               @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?         @map("locked_until")
+  mustChangePassword  Boolean           @default(false) @map("must_change_password")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  deletedAt           DateTime?         @map("deleted_at")
+  createdBy           String?           @map("created_by")
+  updatedBy           String?           @map("updated_by")
+  firstName           String?           @map("first_name")
+  lastName            String?           @map("last_name")
+  username            String?           @unique
+  activityLogs        UserActivityLog[]
+  sessions            UserSession[]
+  branch              Branch?           @relation(fields: [branchId], references: [id])
+  company             Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  printJobs           PrintJob[]
+
+  @@index([companyId, status])
+  @@index([companyId, role])
+  @@index([branchId])
+  @@index([status, lastLoginAt])
+  @@index([failedLoginAttempts, lockedUntil])
+  @@map("users")
+}
+
+model UserSession {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  tokenHash        String    @unique @map("token_hash")
+  refreshTokenHash String?   @unique @map("refresh_token_hash")
+  expiresAt        DateTime  @map("expires_at")
+  refreshExpiresAt DateTime? @map("refresh_expires_at")
+  ipAddress        String?   @map("ip_address")
+  userAgent        String?   @map("user_agent")
+  deviceType       String?   @map("device_type")
+  isActive         Boolean   @default(true) @map("is_active")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  lastUsedAt       DateTime  @default(now()) @map("last_used_at")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([expiresAt, isActive])
+  @@index([refreshExpiresAt])
+  @@index([lastUsedAt])
+  @@index([ipAddress, userAgent])
+  @@map("user_sessions")
+}
+
+model UserActivityLog {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  action       String
+  resourceType String?  @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  description  String?
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  success      Boolean  @default(true)
+  errorMessage String?  @map("error_message")
+  timestamp    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([action, timestamp])
+  @@index([success, timestamp])
+  @@index([resourceType, resourceId])
+  @@index([timestamp])
+  @@map("user_activity_logs")
+}
+
+model MenuCategory {
+  id            String        @id @default(uuid())
+  companyId     String        @map("company_id")
+  name          Json
+  description   Json?
+  image         String?
+  displayNumber Int           @default(0) @map("display_number")
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+  createdBy     String?       @map("created_by")
+  updatedBy     String?       @map("updated_by")
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products      MenuProduct[]
+
+  @@index([companyId, isActive, displayNumber])
+  @@map("menu_categories")
+}
+
+model MenuProduct {
+  id                       String                    @id @default(uuid())
+  companyId                String                    @map("company_id")
+  categoryId               String?                   @map("category_id")
+  name                     Json
+  description              Json?
+  image                    String?
+  slug                     String?
+  basePrice                Decimal                   @map("base_price") @db.Decimal(10, 2)
+  pricing                  Json                      @default("{}")
+  cost                     Decimal                   @default(0) @db.Decimal(10, 2)
+  status                   Int                       @default(1)
+  priority                 Int                       @default(0)
+  preparationTime          Int                       @default(15) @map("preparation_time")
+  pricingMethod            Int                       @default(1) @map("pricing_method")
+  sellingMethod            Int                       @default(1) @map("selling_method")
+  tags                     String[]                  @default([])
+  createdAt                DateTime                  @default(now()) @map("created_at")
+  updatedAt                DateTime                  @updatedAt @map("updated_at")
+  deletedAt                DateTime?                 @map("deleted_at")
+  createdBy                String?                   @map("created_by")
+  updatedBy                String?                   @map("updated_by")
+  images                   String[]                  @default([])
+  category                 MenuCategory?             @relation(fields: [categoryId], references: [id])
+  company                  Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productImages            ProductImage[]
+  modifierCategories       ProductModifierCategory[]
+  promotionModifierMarkups PromotionModifierMarkup[]
+  promotionProducts        PromotionProduct[]
+  promotionMenuItems       PromotionMenuItem[]
+  orderItems               OrderItem[]
+
+  @@index([companyId, status])
+  @@index([companyId, categoryId, priority])
+  @@index([companyId, createdAt])
+  @@map("menu_products")
+}
+
+model ProductImage {
+  id           String       @id @default(uuid())
+  productId    String?      @map("product_id")
+  filename     String
+  originalName String       @map("original_name")
+  url          String
+  size         Int
+  width        Int
+  height       Int
+  mimeType     String       @map("mime_type")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  product      MenuProduct? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([createdAt])
+  @@map("product_images")
+}
+
+model ModifierCategory {
+  id                String                    @id @default(uuid())
+  companyId         String                    @map("company_id")
+  name              Json
+  description       Json?
+  displayNumber     Int                       @default(0) @map("display_number")
+  image             String?
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+  deletedAt         DateTime?                 @map("deleted_at")
+  isRequired        Boolean                   @default(false) @map("is_required")
+  maxSelections     Int                       @default(1) @map("max_selections")
+  minSelections     Int                       @default(0) @map("min_selections")
+  selectionType     ModifierSelectionType     @default(single) @map("selection_type")
+  company           Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  modifiers         Modifier[]
+  productCategories ProductModifierCategory[]
+
+  @@map("modifier_categories")
+}
+
+model Modifier {
+  id                 String                    @id @default(uuid())
+  modifierCategoryId String                    @map("modifier_category_id")
+  companyId          String                    @map("company_id")
+  name               Json
+  description        Json?
+  basePrice          Decimal                   @map("base_price") @db.Decimal(10, 2)
+  pricing            Json                      @default("{}")
+  cost               Decimal                   @default(0) @db.Decimal(10, 2)
+  status             Int                       @default(1)
+  displayNumber      Int                       @default(0) @map("display_number")
+  createdAt          DateTime                  @default(now()) @map("created_at")
+  updatedAt          DateTime                  @updatedAt @map("updated_at")
+  deletedAt          DateTime?                 @map("deleted_at")
+  image              String?
+  isDefault          Boolean                   @default(false) @map("is_default")
+  company            Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  modifierCategory   ModifierCategory          @relation(fields: [modifierCategoryId], references: [id], onDelete: Cascade)
+  promotionMarkups   PromotionModifierMarkup[]
+
+  @@map("modifiers")
+}
+
+model ProductModifierCategory {
+  id                 String           @id @default(uuid())
+  productId          String           @map("product_id")
+  modifierCategoryId String           @map("modifier_category_id")
+  minQuantity        Int              @default(0) @map("min_quantity")
+  maxQuantity        Int              @default(1) @map("max_quantity")
+  priceOverride      Decimal?         @map("price_override") @db.Decimal(10, 2)
+  isRequired         Boolean          @default(false) @map("is_required")
+  displayOrder       Int              @default(0) @map("display_order")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  modifierCategory   ModifierCategory @relation(fields: [modifierCategoryId], references: [id], onDelete: Cascade)
+  product            MenuProduct      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_modifier_categories")
+}
+
+model Promotion {
+  id                      String                    @id @default(uuid())
+  companyId               String                    @map("company_id")
+  name                    String
+  description             String?
+  promotionType           String                    @default("selective_product") @map("promotion_type")
+  startDate               DateTime                  @map("start_date")
+  endDate                 DateTime                  @map("end_date")
+  isActive                Boolean                   @default(false) @map("is_active")
+  autoRevert              Boolean                   @default(true) @map("auto_revert")
+  platforms               Json                      @default("[\"all\"]")
+  minProfitMargin         Decimal                   @default(15.00) @map("min_profit_margin") @db.Decimal(5, 2)
+  originalPricingSnapshot Json?                     @map("original_pricing_snapshot")
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  updatedAt               DateTime                  @updatedAt @map("updated_at")
+  createdBy               String?                   @map("created_by")
+  priceHistories          PriceHistory[]
+  modifierMarkups         PromotionModifierMarkup[]
+  promotionProducts       PromotionProduct[]
+  company                 Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("promotions")
+}
+
+model PromotionProduct {
+  id                String      @id @default(uuid())
+  promotionId       String      @map("promotion_id")
+  productId         String      @map("product_id")
+  baseDiscountType  String      @default("percentage") @map("base_discount_type")
+  baseDiscountValue Decimal     @map("base_discount_value") @db.Decimal(10, 2)
+  createdAt         DateTime    @default(now()) @map("created_at")
+  product           MenuProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  promotion         Promotion   @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@map("promotion_products")
+}
+
+model PromotionModifierMarkup {
+  id               String      @id @default(uuid())
+  promotionId      String      @map("promotion_id")
+  productId        String      @map("product_id")
+  modifierId       String      @map("modifier_id")
+  markupPercentage Decimal     @map("markup_percentage") @db.Decimal(5, 2)
+  originalPrice    Decimal     @map("original_price") @db.Decimal(10, 2)
+  markedUpPrice    Decimal     @map("marked_up_price") @db.Decimal(10, 2)
+  profitMargin     Decimal?    @map("profit_margin") @db.Decimal(5, 2)
+  businessReason   String?     @map("business_reason")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  modifier         Modifier    @relation(fields: [modifierId], references: [id], onDelete: Cascade)
+  product          MenuProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  promotion        Promotion   @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@map("promotion_modifier_markups")
+}
+
+model PriceHistory {
+  id           String     @id @default(uuid())
+  entityType   String     @map("entity_type")
+  entityId     String     @map("entity_id")
+  promotionId  String?    @map("promotion_id")
+  oldPrice     Decimal?   @map("old_price") @db.Decimal(10, 2)
+  newPrice     Decimal?   @map("new_price") @db.Decimal(10, 2)
+  changeReason String?    @map("change_reason")
+  platform     String?
+  createdAt    DateTime   @default(now()) @map("created_at")
+  createdBy    String?    @map("created_by")
+  promotion    Promotion? @relation(fields: [promotionId], references: [id])
+
+  @@map("price_history")
+}
+
+model license_audit_logs {
+  id         Int       @id @default(autoincrement())
+  license_id String
+  action     String    @db.VarChar(50)
+  old_data   Json?
+  new_data   Json?
+  user_id    String?
+  timestamp  DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model license_invoices {
+  id             Int       @id @default(autoincrement())
+  license_id     String
+  invoice_number String    @unique @db.VarChar(50)
+  amount         Decimal   @db.Decimal(10, 2)
+  currency       String?   @default("JOD") @db.VarChar(3)
+  status         String?   @default("pending") @db.VarChar(20)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  due_date       DateTime? @db.Timestamp(6)
+  paid_at        DateTime? @db.Timestamp(6)
+  payment_method String?   @db.VarChar(50)
+  company_id     String?
+  duration_days  Int?
+  issued_at      DateTime? @default(now()) @db.Timestamp(6)
+  due_at         DateTime? @db.Timestamp(6)
+  metadata       Json?
+  created_by     String?
+}
+
+enum UserRole {
+  super_admin
+  company_owner
+  branch_manager
+  cashier
+  call_center
+
+  @@map("user_role")
+}
+
+enum UserStatus {
+  active
+  inactive
+  suspended
+  pending
+
+  @@map("user_status")
+}
+
+enum CompanyStatus {
+  active
+  inactive
+  suspended
+  trial
+
+  @@map("company_status")
+}
+
+enum LicenseStatus {
+  active
+  expired
+  suspended
+  cancelled
+
+  @@map("license_status")
+}
+
+enum ModifierSelectionType {
+  single
+  multiple
+  counter
+
+  @@map("modifier_selection_type")
+}
+
+// Delivery System Models
+model DeliveryZone {
+  id                     String    @id @default(uuid())
+  branchId               String    @map("branch_id")
+  zoneName               Json      // Multi-language: {"en": "Downtown Amman", "ar": "وسط البلد عمان"}
+  zoneNameSlug           String?   @map("zone_name_slug")
+  deliveryFee            Decimal?  @map("delivery_fee") @db.Decimal(8, 2) // Now optional - set by company
+  averageDeliveryTimeMins Int?     @map("average_delivery_time_mins") // Auto-calculated when delivering
+  priorityLevel          Int       @default(2) @map("priority_level") // 1=premium, 2=standard, 3=extended
+  isActive               Boolean   @default(true) @map("is_active")
+  polygon                Json?     // GeoJSON polygon coordinates
+  centerLat              Decimal?  @map("center_lat") @db.Decimal(10, 8)
+  centerLng              Decimal?  @map("center_lng") @db.Decimal(11, 8)
+  radius                 Decimal?  @db.Decimal(8, 2) // in km for circular zones
+  
+  // Global location reference for massive datasets
+  globalLocationId    String?   @map("global_location_id")
+  
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+  createdBy           String?   @map("created_by")
+  updatedBy           String?   @map("updated_by")
+  
+  // Relations
+  branch              Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  globalLocation      GlobalLocation? @relation(fields: [globalLocationId], references: [id])
+  orders              Order[]
+
+  @@index([branchId, isActive, priorityLevel])
+  @@map("delivery_zones")
+}
+
+// Global locations system for massive datasets (25k+ locations)
+model GlobalLocation {
+  id                String          @id @default(uuid())
+  
+  // Hierarchical location data
+  countryName       String          @map("country_name")
+  countryNameAr     String          @map("country_name_ar")
+  governorate       String?         // Province/State level
+  city              String          @map("city_name")
+  cityNameAr        String          @map("city_name_ar")
+  area              String          @map("area_name")
+  areaNameAr        String          @map("area_name_ar")
+  subArea           String?         @map("sub_area_name")
+  subAreaNameAr     String?         @map("sub_area_name_ar")
+  
+  // Geographic coordinates
+  latitude          Decimal?        @db.Decimal(10, 8)
+  longitude         Decimal?        @db.Decimal(11, 8)
+  
+  // Search optimization for 25k+ records
+  searchText        String?         @map("search_text") // Combined searchable text
+  isActive          Boolean         @default(true) @map("is_active")
+  
+  // Delivery metadata
+  deliveryDifficulty Int           @default(2) @map("delivery_difficulty") // 1=easy, 5=restricted
+  averageDeliveryFee Decimal       @default(3.00) @map("average_delivery_fee") @db.Decimal(8, 2)
+  
+  // Timestamps
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  
+  // Relations
+  deliveryZones     DeliveryZone[]
+
+  // High-performance indexes for massive datasets
+  @@index([countryName, city, area])
+  @@index([searchText])
+  @@index([city, area])
+  @@index([isActive, city])
+  @@index([governorate, city]) // For regional queries
+  @@map("global_locations")
+}
+
+model JordanLocation {
+  id               String          @id @default(uuid())
+  governorate      String          // Amman, Zarqa, Irbid, Aqaba, etc.
+  city             String
+  district         String?
+  areaNameEn       String          @map("area_name_en")
+  areaNameAr       String          @map("area_name_ar")
+  postalCode       String?         @map("postal_code")
+  deliveryDifficulty Int           @default(2) @map("delivery_difficulty") // 1=easy, 2=normal, 3=hard, 4=very_hard, 5=restricted
+  averageDeliveryFee Decimal       @default(3.00) @map("average_delivery_fee") @db.Decimal(8, 2)
+  lat              Decimal?        @db.Decimal(10, 8)
+  lng              Decimal?        @db.Decimal(11, 8)
+  isActive         Boolean         @default(true) @map("is_active")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  deliveryProviders DeliveryProvider[]
+
+  @@index([governorate, city])
+  @@index([areaNameEn, areaNameAr])
+  @@map("jordan_locations")
+}
+
+model DeliveryProvider {
+  id                String            @id @default(uuid())
+  name              String            // 'dhub', 'careem', 'talabat', 'jahez', 'deliveroo'
+  displayName       Json              // Multi-language display names
+  apiBaseUrl        String?           @map("api_base_url")
+  apiKey            String?           @map("api_key")
+  isActive          Boolean           @default(true) @map("is_active")
+  priority          Int               @default(1) // Lower number = higher priority
+  supportedAreas    String[]          @default([]) @map("supported_areas") // Array of location IDs
+  avgDeliveryTime   Int               @default(30) @map("avg_delivery_time") // minutes
+  baseFee           Decimal           @default(0.00) @map("base_fee") @db.Decimal(8, 2)
+  feePerKm          Decimal           @default(0.50) @map("fee_per_km") @db.Decimal(8, 2)
+  maxDistance       Decimal           @default(15.00) @map("max_distance") @db.Decimal(8, 2) // km
+  // Multi-tenant configuration
+  companyId         String?           @map("company_id") // null = global, set = company-specific
+  webhookUrl        String?           @map("webhook_url") // Provider callback URL
+  configuration     Json?             // Provider-specific settings
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  // Relations  
+  company           Company?          @relation(fields: [companyId], references: [id])
+  jordanLocations   JordanLocation[]
+  orders            Order[]
+  providerOrders    DeliveryProviderOrder[]
+
+  @@index([isActive, priority])
+  @@index([companyId, isActive]) // Multi-tenant index
+  @@map("delivery_providers")
+}
+
+model DeliveryProviderOrder {
+  id                      String           @id @default(uuid())
+  companyId               String           @map("company_id")
+  branchId                String           @map("branch_id")
+  deliveryProviderId      String           @map("delivery_provider_id")
+  providerOrderId         String           @map("provider_order_id") // External provider's order ID
+  orderNumber             String           @map("order_number")
+  orderStatus             String           @default("created") @map("order_status")
+  orderDetails            Json             @map("order_details") // Full order payload
+  customerDetails         Json?            @map("customer_details")
+  deliveryAddress         Json?            @map("delivery_address")
+  webhookData             Json?            @map("webhook_data") // Incoming webhook payloads
+  isProcessed             Boolean          @default(false) @map("is_processed")
+  errorMessage            String?          @map("error_message")
+  createdAt               DateTime         @default(now()) @map("created_at")
+  updatedAt               DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  company                 Company          @relation(fields: [companyId], references: [id])
+  branch                  Branch           @relation(fields: [branchId], references: [id])
+  deliveryProvider        DeliveryProvider @relation(fields: [deliveryProviderId], references: [id])
+
+  // New tracking fields
+  trackingNumber          String?          @map("tracking_number")
+  estimatedDeliveryTime   DateTime?        @map("estimated_delivery_time")
+  actualDeliveryTime      DateTime?        @map("actual_delivery_time")
+  deliveryAttempts        Int              @default(1) @map("delivery_attempts")
+  failureReason           String?          @map("failure_reason")
+  providerFeeCharged      Decimal?         @map("provider_fee_charged") @db.Decimal(8, 2)
+  webhookRetries          Int              @default(0) @map("webhook_retries")
+  lastStatusCheck         DateTime?        @map("last_status_check")
+
+  @@index([companyId, orderStatus, createdAt])
+  @@index([deliveryProviderId, providerOrderId])
+  @@index([orderNumber])
+  @@map("delivery_provider_orders")
+}
+
+// Multi-tenant provider configuration system
+model CompanyProviderConfig {
+  id                  String            @id @default(uuid())
+  companyId           String            @map("company_id")
+  providerType        String            @map("provider_type") // dhub, talabat, careem, etc.
+  configuration       Json              @default("{}")  // API URLs, settings
+  credentials         Json              @default("{}")  // API keys, tokens (encrypted)
+  isActive            Boolean           @default(true) @map("is_active")
+  priority            Int               @default(1) // Provider selection priority
+  maxDistance         Decimal           @default(15.00) @map("max_distance") @db.Decimal(8, 2)
+  baseFee             Decimal           @default(2.50) @map("base_fee") @db.Decimal(8, 2)
+  feePerKm            Decimal           @default(0.50) @map("fee_per_km") @db.Decimal(8, 2)
+  avgDeliveryTime     Int               @default(30) @map("avg_delivery_time") // minutes
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  deletedAt           DateTime?         @map("deleted_at")
+
+  // Relations
+  company             Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchMappings      BranchProviderMapping[]
+  providerOrders      ProviderOrderLog[]
+
+  @@index([companyId, providerType, isActive])
+  @@index([companyId, priority])
+  @@map("company_provider_configs")
+}
+
+// Branch to provider mapping (each branch has provider-specific IDs)
+model BranchProviderMapping {
+  id                      String                @id @default(uuid())
+  branchId                String                @map("branch_id")
+  companyProviderConfigId String                @map("company_provider_config_id")
+  providerBranchId        String                @map("provider_branch_id") // External provider branch ID
+  providerSiteId          String?               @map("provider_site_id")   // External provider site ID
+  branchConfiguration     Json                  @default("{}") @map("branch_configuration")
+  isActive                Boolean               @default(true) @map("is_active")
+  priority                Int                   @default(1)
+  minOrderValue           Decimal?              @map("min_order_value") @db.Decimal(10, 2)
+  maxOrderValue           Decimal?              @map("max_order_value") @db.Decimal(10, 2)
+  supportedPaymentMethods String[]              @default([]) @map("supported_payment_methods")
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @updatedAt @map("updated_at")
+  deletedAt               DateTime?             @map("deleted_at")
+
+  // Relations
+  branch                  Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  companyProviderConfig   CompanyProviderConfig @relation(fields: [companyProviderConfigId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, isActive])
+  @@index([companyProviderConfigId, isActive])
+  @@index([providerBranchId])
+  @@map("branch_provider_mappings")
+}
+
+// Provider order logs for tracking and debugging
+model ProviderOrderLog {
+  id                      String                @id @default(uuid())
+  companyProviderConfigId String                @map("company_provider_config_id")
+  branchId                String?               @map("branch_id")
+  orderId                 String?               @map("order_id") // Internal order ID
+  providerOrderId         String?               @map("provider_order_id") // External provider order ID
+  orderStatus             String                @default("pending") @map("order_status")
+  requestPayload          Json?                 @map("request_payload")
+  responsePayload         Json?                 @map("response_payload")
+  webhookPayload          Json?                 @map("webhook_payload")
+  errorMessage            String?               @map("error_message")
+  processingTimeMs        Int?                  @map("processing_time_ms")
+  apiEndpoint             String?               @map("api_endpoint")
+  httpStatusCode          Int?                  @map("http_status_code")
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  companyProviderConfig   CompanyProviderConfig @relation(fields: [companyProviderConfigId], references: [id], onDelete: Cascade)
+
+  @@index([companyProviderConfigId, createdAt])
+  @@index([orderId])
+  @@index([providerOrderId])
+  @@index([orderStatus])
+  @@map("provider_order_logs")
+}
+
+// Delivery Error Tracking for Production Monitoring
+model DeliveryErrorLog {
+  id              String    @id @default(uuid())
+  companyId       String    @map("company_id")
+  providerType    String    @map("provider_type")
+  errorType       String    @map("error_type") // connection, authentication, validation, business_logic, timeout, rate_limit
+  errorCode       String?   @map("error_code")
+  errorMessage    String    @map("error_message")
+  requestPayload  Json?     @map("request_payload")
+  responsePayload Json?     @map("response_payload")
+  retryCount      Int       @default(0) @map("retry_count")
+  resolvedAt      DateTime? @map("resolved_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@index([providerType, errorType, createdAt])
+  @@index([createdAt])
+  @@map("delivery_error_logs")
+}
+
+// Webhook Delivery Tracking for Reliability
+model WebhookDeliveryLog {
+  id                  String    @id @default(uuid())
+  companyId           String    @map("company_id")
+  providerType        String    @map("provider_type")
+  webhookType         String    @map("webhook_type")
+  orderId             String?   @map("order_id")
+  payload             Json
+  status              String    @default("pending") @map("status") // pending, processed, failed, retrying
+  processingAttempts  Int       @default(0) @map("processing_attempts")
+  processedAt         DateTime? @map("processed_at")
+  errorMessage        String?   @map("error_message")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@index([status, createdAt])
+  @@index([providerType, webhookType, createdAt])
+  @@map("webhook_delivery_logs")
+}
+
+// Real-time Provider Analytics for Performance Monitoring
+model DeliveryProviderAnalytics {
+  id                    String   @id @default(uuid())
+  companyId             String   @map("company_id")
+  providerType          String   @map("provider_type")
+  date                  DateTime @db.Date
+  totalOrders           Int      @default(0) @map("total_orders")
+  successfulOrders      Int      @default(0) @map("successful_orders")
+  failedOrders          Int      @default(0) @map("failed_orders")
+  cancelledOrders       Int      @default(0) @map("cancelled_orders")
+  totalRevenue          Decimal  @default(0) @map("total_revenue") @db.Decimal(10, 2)
+  totalDeliveryFee      Decimal  @default(0) @map("total_delivery_fee") @db.Decimal(10, 2)
+  averageDeliveryTime   Int      @default(0) @map("average_delivery_time") // in minutes
+  customerRatingsSum    Decimal  @default(0) @map("customer_ratings_sum") @db.Decimal(10, 2)
+  customerRatingsCount  Int      @default(0) @map("customer_ratings_count")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, providerType, date])
+  @@index([companyId, date])
+  @@index([providerType, date])
+  @@map("delivery_provider_analytics")
+}
+
+model Order {
+  id                    String            @id @default(uuid())
+  orderNumber           String            @unique @map("order_number")
+  branchId              String            @map("branch_id")
+  deliveryZoneId        String?           @map("delivery_zone_id")
+  deliveryProviderId    String?           @map("delivery_provider_id")
+  customerName          String            @map("customer_name")
+  customerPhone         String            @map("customer_phone")
+  customerEmail         String?           @map("customer_email")
+  deliveryAddress       String?           @map("delivery_address")
+  deliveryLat           Decimal?          @map("delivery_lat") @db.Decimal(10, 8)
+  deliveryLng           Decimal?          @map("delivery_lng") @db.Decimal(11, 8)
+  orderType             OrderType         @map("order_type")
+  status                OrderStatus       @default(pending)
+  subtotal              Decimal           @db.Decimal(10, 2)
+  deliveryFee           Decimal           @default(0.00) @map("delivery_fee") @db.Decimal(8, 2)
+  taxAmount             Decimal           @default(0.00) @map("tax_amount") @db.Decimal(8, 2)
+  totalAmount           Decimal           @map("total_amount") @db.Decimal(10, 2)
+  paymentMethod         PaymentMethod     @map("payment_method")
+  paymentStatus         PaymentStatus     @default(pending) @map("payment_status")
+  estimatedDeliveryTime DateTime?         @map("estimated_delivery_time")
+  actualDeliveryTime    DateTime?         @map("actual_delivery_time")
+  providerOrderId       String?           @map("provider_order_id")
+  providerTrackingUrl   String?           @map("provider_tracking_url")
+  driverInfo            Json?             @map("driver_info")
+  notes                 String?
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  deliveredAt           DateTime?         @map("delivered_at")
+  cancelledAt           DateTime?         @map("cancelled_at")
+  cancellationReason    String?           @map("cancellation_reason")
+  branch                Branch            @relation(fields: [branchId], references: [id])
+  deliveryZone          DeliveryZone?     @relation(fields: [deliveryZoneId], references: [id])
+  deliveryProvider      DeliveryProvider? @relation(fields: [deliveryProviderId], references: [id])
+  orderItems            OrderItem[]
+
+  @@index([branchId, status, createdAt])
+  @@index([deliveryProviderId, status])
+  @@index([orderNumber])
+  @@index([customerPhone])
+  @@index([paymentStatus, status])
+  @@index([orderType, status, createdAt])
+  @@index([estimatedDeliveryTime])
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String      @id @default(uuid())
+  orderId          String      @map("order_id")
+  productId        String      @map("product_id")
+  productName      Json        @map("product_name") // Multi-language
+  quantity         Int
+  unitPrice        Decimal     @map("unit_price") @db.Decimal(10, 2)
+  totalPrice       Decimal     @map("total_price") @db.Decimal(10, 2)
+  modifiers        Json?       // Selected modifiers with prices
+  specialRequests  String?     @map("special_requests")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  order            Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          MenuProduct @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+
+enum OrderType {
+  delivery
+  pickup
+  dine_in
+
+  @@map("order_type")
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  ready_for_pickup
+  out_for_delivery
+  delivered
+  cancelled
+  refunded
+
+  @@map("order_status")
+}
+
+enum PaymentMethod {
+  cash
+  card
+  online
+  wallet
+
+  @@map("payment_method")
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+
+  @@map("payment_status")
+}
+
+// Printing System Models
+model Printer {
+  id            String        @id @default(uuid())
+  name          String
+  type          PrinterType
+  connection    PrinterConnection
+  ip            String?
+  port          Int?          @default(9100)
+  manufacturer  String?
+  model         String?
+  location      String?
+  paperWidth    Int?          // in mm
+  assignedTo    PrinterAssignment @default(cashier)
+  isDefault     Boolean       @default(false) @map("is_default")
+  status        PrinterStatus @default(unknown)
+  capabilities  String?       // JSON string
+  lastSeen      DateTime?     @map("last_seen")
+  companyId     String        @map("company_id")
+  branchId      String?       @map("branch_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch        Branch?       @relation(fields: [branchId], references: [id])
+  printJobs     PrintJob[]
+
+  @@index([companyId, status])
+  @@index([branchId, assignedTo])
+  @@map("printers")
+}
+
+model PrintJob {
+  id              String        @id @default(uuid())
+  type            PrintJobType
+  printerId       String        @map("printer_id")
+  content         String        // JSON string
+  status          PrintJobStatus @default(pending)
+  priority        Int           @default(5)
+  orderId         String?       @map("order_id")
+  companyId       String        @map("company_id")
+  branchId        String?       @map("branch_id")
+  userId          String?       @map("user_id")
+  attempts        Int           @default(0)
+  processingTime  Int?          @map("processing_time") // in ms
+  error           String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  startedAt       DateTime?     @map("started_at")
+  completedAt     DateTime?     @map("completed_at")
+  failedAt        DateTime?     @map("failed_at")
+  
+  printer         Printer       @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch          Branch?       @relation(fields: [branchId], references: [id])
+  user            User?         @relation(fields: [userId], references: [id])
+
+  @@index([printerId, status, createdAt])
+  @@index([companyId, status, createdAt])
+  @@index([priority, createdAt])
+  @@map("print_jobs")
+}
+
+model PrintTemplate {
+  id          String    @id @default(uuid())
+  name        String
+  type        PrintJobType
+  template    String    // JSON string
+  isDefault   Boolean   @default(false) @map("is_default")
+  companyId   String    @map("company_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, type])
+  @@map("print_templates")
+}
+
+// Printing Enums
+enum PrinterType {
+  thermal
+  receipt
+  kitchen
+  label
+
+  @@map("printer_type")
+}
+
+enum PrinterConnection {
+  network
+  usb
+  bluetooth
+
+  @@map("printer_connection")
+}
+
+enum PrinterStatus {
+  online
+  offline
+  error
+  unknown
+
+  @@map("printer_status")
+}
+
+enum PrinterAssignment {
+  kitchen
+  cashier
+  bar
+  all
+
+  @@map("printer_assignment")
+}
+
+enum PrintJobType {
+  receipt
+  kitchen_order
+  label
+  test
+
+  @@map("print_job_type")
+}
+
+enum PrintJobStatus {
+  pending
+  printing
+  completed
+  failed
+
+  @@map("print_job_status")
+}
+
+// Menu Availability Management System
+// Based on Picolinate analysis and modern restaurant management best practices
+
+model BranchAvailability {
+  id                String           @id @default(uuid())
+  
+  // Polymorphic relationship - can be linked to products or modifiers
+  connectedId       String           @map("connected_id")
+  connectedType     ConnectedType    @map("connected_type") // "product" or "modifier"
+  
+  // Branch association
+  branchId          String           @map("branch_id")
+  companyId         String           @map("company_id")
+  
+  // Availability status
+  isInStock         Boolean          @default(true) @map("is_in_stock")
+  isActive          Boolean          @default(true) @map("is_active")
+  stockLevel        Int?             @map("stock_level") // For inventory tracking
+  lowStockThreshold Int?             @map("low_stock_threshold")
+  
+  // Platform-specific pricing (JSON structure for flexibility)
+  prices            Json             @default("{}") // {"talabat": 10.50, "careem": 11.00, "website": 9.50, "call_center": 10.00}
+  taxes             Json?            @default("{}") // Platform-specific tax configurations
+  
+  // Time-based availability
+  availableFrom     String?          @map("available_from") // "06:00"
+  availableTo       String?          @map("available_to")   // "23:30"
+  availableDays     String[]         @default([]) @map("available_days") // ["monday", "tuesday", ...]
+  
+  // Metadata and audit
+  lastStockUpdate   DateTime?        @map("last_stock_update")
+  notes             String?          // Admin notes about availability
+  priority          Int              @default(0) // Higher priority items get preference when stock is low
+  
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  deletedAt         DateTime?        @map("deleted_at")
+  createdBy         String?          @map("created_by")
+  updatedBy         String?          @map("updated_by")
+  
+  // Relations
+  branch            Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  company           Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  auditLogs         AvailabilityAuditLog[]
+  
+  // High-performance indexes for availability queries
+  @@index([branchId, connectedType, isActive])
+  @@index([companyId, connectedType, isInStock])
+  @@index([connectedId, connectedType, branchId])
+  @@index([branchId, isActive, priority])
+  
+  @@map("branch_availabilities")
+}
+
+// Availability change audit trail for compliance and debugging
+model AvailabilityAuditLog {
+  id                      String            @id @default(uuid())
+  branchAvailabilityId    String            @map("branch_availability_id")
+  companyId               String            @map("company_id")
+  
+  // Change details
+  changeType              AvailabilityChangeType @map("change_type") // status, stock, price, schedule
+  oldValue                Json?             @map("old_value")
+  newValue                Json?             @map("new_value")
+  changeReason            String?           @map("change_reason")
+  
+  // User and metadata
+  userId                  String?           @map("user_id")
+  userRole                UserRole?         @map("user_role")
+  ipAddress               String?           @map("ip_address")
+  userAgent               String?           @map("user_agent")
+  
+  // Platform context
+  platform                String?           // Which platform triggered the change
+  batchOperation          Boolean           @default(false) @map("batch_operation")
+  batchId                 String?           @map("batch_id")
+  
+  timestamp               DateTime          @default(now())
+  
+  // Relations
+  branchAvailability      BranchAvailability @relation(fields: [branchAvailabilityId], references: [id], onDelete: Cascade)
+  company                 Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([branchAvailabilityId, timestamp])
+  @@index([companyId, changeType, timestamp])
+  @@index([batchId])
+  
+  @@map("availability_audit_logs")
+}
+
+// Availability templates for quick setup and seasonal patterns
+model AvailabilityTemplate {
+  id                String            @id @default(uuid())
+  companyId         String            @map("company_id")
+  
+  name              String
+  description       String?
+  templateType      TemplateType      @map("template_type") // seasonal, holiday, daily, weekly
+  
+  // Template configuration
+  configuration     Json              @default("{}")  // Template rules and settings
+  
+  // Scheduling
+  isActive          Boolean           @default(true) @map("is_active")
+  startDate         DateTime?         @map("start_date")
+  endDate           DateTime?         @map("end_date")
+  recurringPattern  Json?             @map("recurring_pattern") // For weekly/monthly patterns
+  
+  // Usage tracking
+  lastAppliedAt     DateTime?         @map("last_applied_at")
+  appliedCount      Int               @default(0) @map("applied_count")
+  
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  createdBy         String?           @map("created_by")
+  
+  // Relations
+  company           Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, templateType, isActive])
+  @@map("availability_templates")
+}
+
+// Real-time availability notifications and alerts
+model AvailabilityAlert {
+  id                String            @id @default(uuid())
+  companyId         String            @map("company_id")
+  branchId          String?           @map("branch_id")
+  
+  alertType         AlertType         @map("alert_type") // low_stock, out_of_stock, pricing_sync_failed
+  severity          AlertSeverity     @default(medium)
+  title             String
+  message           String
+  
+  // Target information
+  connectedId       String?           @map("connected_id")
+  connectedType     ConnectedType?    @map("connected_type")
+  
+  // Alert management
+  isRead            Boolean           @default(false) @map("is_read")
+  isResolved        Boolean           @default(false) @map("is_resolved")
+  resolvedAt        DateTime?         @map("resolved_at")
+  resolvedBy        String?           @map("resolved_by")
+  
+  // Notification channels
+  channels          String[]          @default([]) // ["email", "sms", "push", "webhook"]
+  sentAt            DateTime?         @map("sent_at")
+  
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  
+  // Relations
+  company           Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch            Branch?           @relation(fields: [branchId], references: [id])
+  
+  @@index([companyId, isRead, severity, createdAt])
+  @@index([branchId, alertType, isResolved])
+  
+  @@map("availability_alerts")
+}
+
+// Relations added to existing models (updated in the main Company and Branch models above)
+
+// New enums for availability system
+enum ConnectedType {
+  product
+  modifier
+  category
+  
+  @@map("connected_type")
+}
+
+enum AvailabilityChangeType {
+  status_change
+  stock_update
+  price_change
+  schedule_update
+  bulk_operation
+  template_applied
+  
+  @@map("availability_change_type")
+}
+
+enum TemplateType {
+  seasonal
+  holiday
+  daily
+  weekly
+  monthly
+  special_event
+  
+  @@map("template_type")
+}
+
+enum AlertType {
+  low_stock
+  out_of_stock
+  pricing_sync_failed
+  schedule_conflict
+  inventory_mismatch
+  platform_sync_error
+  
+  @@map("alert_type")
+}
+
+enum AlertSeverity {
+  low
+  medium
+  high
+  critical
+  
+  @@map("alert_severity")
+}
+
+// Comprehensive Promotion System Enums
+enum PromotionCampaignType {
+  percentage_discount
+  fixed_discount
+  buy_x_get_y
+  free_shipping
+  minimum_order
+  loyalty_points
+  first_time_customer
+  happy_hour
+  bulk_discount
+  combo_deal
+  platform_exclusive
+  
+  @@map("promotion_campaign_type")
+}
+
+enum PromotionStatus {
+  draft
+  active
+  scheduled
+  paused
+  expired
+  archived
+  
+  @@map("promotion_status")
+}
+
+enum PromotionTargetType {
+  product
+  category
+  branch
+  customer
+  modifier
+  
+  @@map("promotion_target_type")
+}
+
+enum CustomerSegment {
+  new
+  vip
+  regular
+  inactive
+  
+  @@map("customer_segment")
+}
+
+// Comprehensive Promotion Campaign Model
+model PromotionCampaign {
+  id                      String                        @id @default(uuid())
+  companyId               String                        @map("company_id")
+  name                    Json                          @default("{}")
+  description             Json                          @default("{}")
+  slug                    String                        @unique
+  type                    PromotionCampaignType
+  status                  PromotionStatus               @default(draft)
+  priority                Int                           @default(999)
+  isPublic                Boolean                       @default(true) @map("is_public")
+  isStackable             Boolean                       @default(false) @map("is_stackable")
+  
+  // Time restrictions
+  startsAt                DateTime?                     @map("starts_at")
+  endsAt                  DateTime?                     @map("ends_at")
+  daysOfWeek              Int[]                         @default([]) @map("days_of_week")
+  timeRanges              Json                          @default("[]") @map("time_ranges")
+  
+  // Usage limits
+  totalUsageLimit         Int?                          @map("total_usage_limit")
+  perCustomerLimit        Int                           @default(1) @map("per_customer_limit")
+  currentUsageCount       Int                           @default(0) @map("current_usage_count")
+  
+  // Discount configuration
+  discountValue           Decimal?                      @map("discount_value") @db.Decimal(10,2)
+  maxDiscountAmount       Decimal?                      @map("max_discount_amount") @db.Decimal(10,2)
+  minimumOrderAmount      Decimal?                      @map("minimum_order_amount") @db.Decimal(10,2)
+  minimumItemsCount       Int                           @default(1) @map("minimum_items_count")
+  
+  // Buy X Get Y configuration
+  buyQuantity             Int?                          @map("buy_quantity")
+  getQuantity             Int?                          @map("get_quantity")
+  getDiscountPercentage   Decimal?                      @map("get_discount_percentage") @db.Decimal(5,2)
+  
+  // Platform targeting
+  targetPlatforms         String[]                      @default([]) @map("target_platforms")
+  targetCustomerSegments  String[]                      @default([]) @map("target_customer_segments")
+  
+  // Analytics
+  totalRevenueImpact      Decimal                       @default(0) @map("total_revenue_impact") @db.Decimal(15,2)
+  totalOrdersCount        Int                           @default(0) @map("total_orders_count")
+  totalCustomersReached   Int                           @default(0) @map("total_customers_reached")
+  
+  // Relations
+  company                 Company                       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy               String?                       @map("created_by")
+  updatedBy               String?                       @map("updated_by")
+  createdAt               DateTime                      @default(now()) @map("created_at")
+  updatedAt               DateTime                      @updatedAt @map("updated_at")
+  deletedAt               DateTime?                     @map("deleted_at")
+  
+  // Related models
+  codes                   PromotionCode[]
+  targets                 PromotionTarget[]
+  usage                   PromotionUsage[]
+  platformConfigs         PromotionPlatformConfig[]
+  analytics               PromotionAnalytics[]
+  variants                PromotionVariant[]
+  menuItems               PromotionMenuItem[]
+  
+  @@map("promotion_campaigns")
+}
+
+model PromotionCode {
+  id           String              @id @default(uuid())
+  campaignId   String              @map("campaign_id")
+  code         String
+  isSingleUse  Boolean             @default(false) @map("is_single_use")
+  usageCount   Int                 @default(0) @map("usage_count")
+  isActive     Boolean             @default(true) @map("is_active")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  
+  campaign     PromotionCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  usage        PromotionUsage[]
+  
+  @@unique([campaignId, code])
+  @@map("promotion_codes")
+}
+
+model PromotionTarget {
+  id         String              @id @default(uuid())
+  campaignId String              @map("campaign_id")
+  targetType PromotionTargetType @map("target_type")
+  targetId   String              @map("target_id")
+  createdAt  DateTime            @default(now()) @map("created_at")
+  
+  campaign   PromotionCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  @@map("promotion_targets")
+}
+
+model PromotionUsage {
+  id               String            @id @default(uuid())
+  campaignId       String            @map("campaign_id")
+  codeId           String?           @map("code_id")
+  customerId       String?           @map("customer_id")
+  customerEmail    String?           @map("customer_email")
+  customerPhone    String?           @map("customer_phone")
+  orderId          String?           @map("order_id")
+  usageDate        DateTime          @default(now()) @map("usage_date")
+  discountApplied  Decimal           @map("discount_applied") @db.Decimal(10,2)
+  orderTotal       Decimal?          @map("order_total") @db.Decimal(10,2)
+  platformUsed     String?           @map("platform_used")
+  branchId         String?           @map("branch_id")
+  metadata         Json              @default("{}")
+  
+  campaign         PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  code             PromotionCode?    @relation(fields: [codeId], references: [id], onDelete: SetNull)
+  
+  @@map("promotion_usage")
+}
+
+model PromotionPlatformConfig {
+  id                 String            @id @default(uuid())
+  campaignId         String            @map("campaign_id")
+  platform           String
+  platformSpecificId String?           @map("platform_specific_id")
+  customSettings     Json              @default("{}") @map("custom_settings")
+  isSynced           Boolean           @default(false) @map("is_synced")
+  lastSyncedAt       DateTime?         @map("last_synced_at")
+  syncError          String?           @map("sync_error")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  
+  campaign           PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  @@unique([campaignId, platform])
+  @@map("promotion_platform_configs")
+}
+
+model PromotionAnalytics {
+  id                  String            @id @default(uuid())
+  campaignId          String            @map("campaign_id")
+  date                DateTime          @db.Date
+  platform            String
+  
+  // Usage metrics
+  totalUses           Int               @default(0) @map("total_uses")
+  uniqueCustomers     Int               @default(0) @map("unique_customers")
+  newCustomers        Int               @default(0) @map("new_customers")
+  returningCustomers  Int               @default(0) @map("returning_customers")
+  
+  // Financial metrics
+  grossRevenue        Decimal           @default(0) @map("gross_revenue") @db.Decimal(15,2)
+  totalDiscountGiven  Decimal           @default(0) @map("total_discount_given") @db.Decimal(15,2)
+  averageOrderValue   Decimal           @default(0) @map("average_order_value") @db.Decimal(10,2)
+  totalOrders         Int               @default(0) @map("total_orders")
+  
+  // Conversion metrics
+  impressionCount     Int               @default(0) @map("impression_count")
+  clickCount          Int               @default(0) @map("click_count")
+  conversionRate      Decimal           @default(0) @map("conversion_rate") @db.Decimal(5,2)
+  
+  createdAt           DateTime          @default(now()) @map("created_at")
+  
+  campaign            PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  @@unique([campaignId, date, platform])
+  @@map("promotion_analytics")
+}
+
+model PromotionTemplate {
+  id           String            @id @default(uuid())
+  companyId    String            @map("company_id")
+  name         String
+  description  String?
+  templateData Json              @map("template_data")
+  category     String            @default("custom")
+  isGlobal     Boolean           @default(false) @map("is_global")
+  usageCount   Int               @default(0) @map("usage_count")
+  createdBy    String?           @map("created_by")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  
+  company      Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@map("promotion_templates")
+}
+
+model PromotionVariant {
+  id                     String            @id @default(uuid())
+  campaignId             String            @map("campaign_id")
+  variantName            String            @map("variant_name")
+  trafficPercentage      Int               @default(50) @map("traffic_percentage")
+  configurationOverride  Json              @default("{}") @map("configuration_override")
+  isActive               Boolean           @default(true) @map("is_active")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  
+  campaign               PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  @@map("promotion_variants")
+}
+
+// Menu item promotion relationship
+model PromotionMenuItem {
+  id                    String            @id @default(uuid())
+  campaignId            String            @map("campaign_id")
+  menuItemId            String            @map("menu_item_id")
+  discountValue         Decimal?          @map("discount_value") @db.Decimal(10,2)
+  discountType          String            @default("percentage") @map("discount_type") // "percentage" | "fixed"
+  maxDiscountAmount     Decimal?          @map("max_discount_amount") @db.Decimal(10,2)
+  platforms             String[]          @default([]) // ["talabat", "careem", "website", "call_center"]
+  isActive              Boolean           @default(true) @map("is_active")
+  startDate             DateTime?         @map("start_date")
+  endDate               DateTime?         @map("end_date")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  
+  // Relations
+  campaign              PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  menuItem              MenuProduct       @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  
+  @@unique([campaignId, menuItemId])
+  @@index([menuItemId, isActive])
+  @@index([campaignId, platforms])
+  @@map("promotion_menu_items")
+}

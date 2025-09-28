@@ -1,0 +1,263 @@
+// Enhanced Multi-Tenant Delivery Provider Architecture Models
+// To be added to the main schema.prisma file
+
+// Provider Availability Tracking - Real-time status
+model ProviderAvailability {
+  id                 String                @id @default(uuid())
+  companyId          String                @map("company_id")
+  providerType       String                @map("provider_type") // dhub, careem, talabat, etc.
+  branchId           String?               @map("branch_id") // Optional: branch-specific availability
+  isOnline           Boolean               @default(true) @map("is_online")
+  driverCount        Int                   @default(0) @map("driver_count")
+  availableDrivers   Int                   @default(0) @map("available_drivers")
+  currentOrders      Int                   @default(0) @map("current_orders")
+  maxCapacity        Int                   @default(100) @map("max_capacity")
+  utilizationRate    Decimal               @default(0) @map("utilization_rate") @db.Decimal(5, 2)
+  avgResponseTime    Int                   @default(300) @map("avg_response_time") // seconds
+  lastPingAt         DateTime              @default(now()) @map("last_ping_at")
+  statusMessage      String?               @map("status_message")
+  serviceRadius      Decimal?              @map("service_radius") @db.Decimal(8, 2) // km
+  createdAt          DateTime              @default(now()) @map("created_at")
+  updatedAt          DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  company            Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch             Branch?               @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, providerType, branchId])
+  @@index([companyId, providerType, isOnline])
+  @@index([isOnline, utilizationRate])
+  @@index([lastPingAt])
+  @@map("provider_availability")
+}
+
+// Delivery Quote Management - Cost calculations and comparisons
+model DeliveryQuote {
+  id                   String                @id @default(uuid())
+  companyId            String                @map("company_id")
+  branchId             String                @map("branch_id")
+  providerType         String                @map("provider_type")
+  quoteReference       String                @unique @map("quote_reference")
+  customerLat          Decimal               @map("customer_lat") @db.Decimal(10, 8)
+  customerLng          Decimal               @map("customer_lng") @db.Decimal(11, 8)
+  distance             Decimal               @map("distance") @db.Decimal(8, 2) // km
+  baseFee              Decimal               @map("base_fee") @db.Decimal(8, 2)
+  distanceFee          Decimal               @map("distance_fee") @db.Decimal(8, 2)
+  timeSurcharge        Decimal               @default(0) @map("time_surcharge") @db.Decimal(8, 2)
+  peakHourSurcharge    Decimal               @default(0) @map("peak_hour_surcharge") @db.Decimal(8, 2)
+  weatherSurcharge     Decimal               @default(0) @map("weather_surcharge") @db.Decimal(8, 2)
+  totalFee             Decimal               @map("total_fee") @db.Decimal(8, 2)
+  estimatedTime        Int                   @map("estimated_time") // minutes
+  priorityScore        Decimal               @map("priority_score") @db.Decimal(5, 2)
+  availabilityScore    Decimal               @map("availability_score") @db.Decimal(5, 2)
+  performanceScore     Decimal               @map("performance_score") @db.Decimal(5, 2)
+  totalScore           Decimal               @map("total_score") @db.Decimal(6, 2)
+  isSelected           Boolean               @default(false) @map("is_selected")
+  quoteValidUntil      DateTime              @map("quote_valid_until")
+  providerResponse     Json?                 @map("provider_response")
+  createdAt            DateTime              @default(now()) @map("created_at")
+
+  // Relations
+  company              Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch               Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, branchId, createdAt])
+  @@index([totalScore, isSelected])
+  @@index([providerType, companyId])
+  @@index([quoteValidUntil, isSelected])
+  @@map("delivery_quotes")
+}
+
+// Vendor Performance Metrics - Historical data for selection algorithm
+model VendorPerformanceMetrics {
+  id                    String                @id @default(uuid())
+  companyId             String                @map("company_id")
+  branchId              String?               @map("branch_id")
+  providerType          String                @map("provider_type")
+  date                  DateTime              @db.Date
+
+  // Performance Metrics
+  totalOrders           Int                   @default(0) @map("total_orders")
+  completedOrders       Int                   @default(0) @map("completed_orders")
+  cancelledOrders       Int                   @default(0) @map("cancelled_orders")
+  onTimeDeliveries      Int                   @default(0) @map("on_time_deliveries")
+  lateDeliveries        Int                   @default(0) @map("late_deliveries")
+
+  // Time Metrics
+  avgDeliveryTime       Int                   @default(0) @map("avg_delivery_time") // minutes
+  avgResponseTime       Int                   @default(0) @map("avg_response_time") // seconds
+  avgPickupTime         Int                   @default(0) @map("avg_pickup_time") // minutes
+
+  // Quality Metrics
+  customerRating        Decimal               @default(0) @map("customer_rating") @db.Decimal(3, 2)
+  customerComplaints    Int                   @default(0) @map("customer_complaints")
+  deliverySuccess       Decimal               @default(0) @map("delivery_success") @db.Decimal(5, 2) // percentage
+
+  // Cost Metrics
+  totalRevenue          Decimal               @default(0) @map("total_revenue") @db.Decimal(10, 2)
+  avgDeliveryFee        Decimal               @default(0) @map("avg_delivery_fee") @db.Decimal(8, 2)
+  totalDistance         Decimal               @default(0) @map("total_distance") @db.Decimal(10, 2)
+  costPerKm             Decimal               @default(0) @map("cost_per_km") @db.Decimal(8, 2)
+
+  // Efficiency Metrics
+  utilizationRate       Decimal               @default(0) @map("utilization_rate") @db.Decimal(5, 2)
+  acceptanceRate        Decimal               @default(0) @map("acceptance_rate") @db.Decimal(5, 2)
+  peakHourPerformance   Decimal               @default(0) @map("peak_hour_performance") @db.Decimal(5, 2)
+
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  company               Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch                Branch?               @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, branchId, providerType, date])
+  @@index([companyId, providerType, date])
+  @@index([deliverySuccess, customerRating])
+  @@index([avgDeliveryTime, onTimeDeliveries])
+  @@map("vendor_performance_metrics")
+}
+
+// Enhanced Branch Provider Mapping with advanced selection criteria
+model BranchProviderMappingAdvanced {
+  id                      String                @id @default(uuid())
+  branchId                String                @map("branch_id")
+  companyProviderConfigId String                @map("company_provider_config_id")
+
+  // Geographic Configuration
+  serviceRadius           Decimal               @map("service_radius") @db.Decimal(8, 2) // km
+  coverageAreas           Json                  @default("[]") @map("coverage_areas") // polygon coordinates
+  excludedAreas           Json                  @default("[]") @map("excluded_areas")
+
+  // Selection Algorithm Weights
+  proximityWeight         Decimal               @default(30) @map("proximity_weight") @db.Decimal(5, 2)
+  capacityWeight          Decimal               @default(25) @map("capacity_weight") @db.Decimal(5, 2)
+  costWeight              Decimal               @default(20) @map("cost_weight") @db.Decimal(5, 2)
+  performanceWeight       Decimal               @default(15) @map("performance_weight") @db.Decimal(5, 2)
+  priorityWeight          Decimal               @default(10) @map("priority_weight") @db.Decimal(5, 2)
+
+  // Business Rules
+  minOrderValue           Decimal?              @map("min_order_value") @db.Decimal(10, 2)
+  maxOrderValue           Decimal?              @map("max_order_value") @db.Decimal(10, 2)
+  operatingHours          Json                  @default("{}") @map("operating_hours")
+  specialDayRules         Json                  @default("{}") @map("special_day_rules")
+  paymentMethods          String[]              @default([]) @map("payment_methods")
+
+  // Performance Thresholds
+  minAcceptanceRate       Decimal               @default(80) @map("min_acceptance_rate") @db.Decimal(5, 2)
+  maxDeliveryTime         Int                   @default(60) @map("max_delivery_time") // minutes
+  minCustomerRating       Decimal               @default(3.5) @map("min_customer_rating") @db.Decimal(3, 2)
+
+  // Auto-selection Rules
+  autoSelectEnabled       Boolean               @default(true) @map("auto_select_enabled")
+  fallbackToSecondary     Boolean               @default(true) @map("fallback_to_secondary")
+  requireManualApproval   Boolean               @default(false) @map("require_manual_approval")
+
+  isActive                Boolean               @default(true) @map("is_active")
+  priority                Int                   @default(1)
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @updatedAt @map("updated_at")
+  deletedAt               DateTime?             @map("deleted_at")
+
+  // Relations
+  branch                  Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  companyProviderConfig   CompanyProviderConfig @relation(fields: [companyProviderConfigId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, isActive, priority])
+  @@index([companyProviderConfigId, isActive])
+  @@index([autoSelectEnabled, isActive])
+  @@map("branch_provider_mapping_advanced")
+}
+
+// Real-time Delivery Tracking
+model DeliveryTracking {
+  id                  String                @id @default(uuid())
+  orderId             String                @map("order_id")
+  companyId           String                @map("company_id")
+  branchId            String                @map("branch_id")
+  providerType        String                @map("provider_type")
+  trackingNumber      String?               @map("tracking_number")
+  driverName          String?               @map("driver_name")
+  driverPhone         String?               @map("driver_phone")
+  driverLocation      Json?                 @map("driver_location") // {lat, lng, timestamp}
+  currentStatus       String                @map("current_status")
+  statusHistory       Json                  @default("[]") @map("status_history")
+  estimatedArrival    DateTime?             @map("estimated_arrival")
+  actualDeliveryTime  DateTime?             @map("actual_delivery_time")
+  deliveryProof       Json?                 @map("delivery_proof") // photo, signature, etc.
+  customerFeedback    Json?                 @map("customer_feedback")
+  deliveryNotes       String?               @map("delivery_notes")
+  lastUpdateFromProvider DateTime?          @map("last_update_from_provider")
+  webhookCallbacks    Json                  @default("[]") @map("webhook_callbacks")
+
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  company             Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch              Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([companyId, currentStatus])
+  @@index([providerType, currentStatus])
+  @@index([trackingNumber])
+  @@map("delivery_tracking")
+}
+
+// Provider Rate Management - Dynamic pricing
+model ProviderRateCard {
+  id                  String                @id @default(uuid())
+  companyId           String                @map("company_id")
+  providerType        String                @map("provider_type")
+  effectiveFrom       DateTime              @map("effective_from")
+  effectiveTo         DateTime?             @map("effective_to")
+
+  // Base Rates
+  baseFee             Decimal               @map("base_fee") @db.Decimal(8, 2)
+  feePerKm            Decimal               @map("fee_per_km") @db.Decimal(8, 2)
+  minimumFee          Decimal               @map("minimum_fee") @db.Decimal(8, 2)
+
+  // Distance Brackets
+  distanceBrackets    Json                  @default("[]") @map("distance_brackets")
+  // [{"from": 0, "to": 5, "rate": 2.5}, {"from": 5, "to": 15, "rate": 1.8}]
+
+  // Time-based Surcharges
+  peakHours           Json                  @default("[]") @map("peak_hours")
+  peakHourMultiplier  Decimal               @default(1) @map("peak_hour_multiplier") @db.Decimal(3, 2)
+
+  // Special Surcharges
+  weatherSurcharge    Decimal               @default(0) @map("weather_surcharge") @db.Decimal(8, 2)
+  holidaySurcharge    Decimal               @default(0) @map("holiday_surcharge") @db.Decimal(8, 2)
+  urgentDeliveryFee   Decimal               @default(0) @map("urgent_delivery_fee") @db.Decimal(8, 2)
+
+  // Volume Discounts
+  volumeDiscounts     Json                  @default("[]") @map("volume_discounts")
+  // [{"ordersPerMonth": 100, "discountPercent": 5}]
+
+  isActive            Boolean               @default(true) @map("is_active")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  company             Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, providerType, effectiveFrom])
+  @@index([effectiveFrom, effectiveTo, isActive])
+  @@map("provider_rate_cards")
+}
+
+// Add new relations to existing models
+
+// Add to Company model
+// providerAvailability   ProviderAvailability[]
+// deliveryQuotes         DeliveryQuote[]
+// vendorMetrics          VendorPerformanceMetrics[]
+// deliveryTracking       DeliveryTracking[]
+// providerRateCards      ProviderRateCard[]
+
+// Add to Branch model
+// providerAvailability   ProviderAvailability[]
+// deliveryQuotes         DeliveryQuote[]
+// vendorMetrics          VendorPerformanceMetrics[]
+// deliveryTracking       DeliveryTracking[]
+// branchProviderAdvanced BranchProviderMappingAdvanced[]

@@ -1,0 +1,407 @@
+// Integration Platform Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// CORE ENTITIES
+// ============================================================================
+
+model Organization {
+  id                  String   @id @default(uuid()) @db.Uuid
+  name                String   @db.VarChar(255)
+  slug                String   @unique @db.VarChar(100)
+  email               String   @unique @db.VarChar(255)
+  phone               String?  @db.VarChar(50)
+  address             String?
+  logoUrl             String?  @map("logo_url") @db.VarChar(500)
+  website             String?  @db.VarChar(255)
+  timezone            String   @default("UTC") @db.VarChar(100)
+  subscriptionPlan    String   @default("free") @map("subscription_plan") @db.VarChar(50)
+  subscriptionStatus  String   @default("active") @map("subscription_status") @db.VarChar(20)
+  settings            Json     @default("{}")
+  limits              Json     @default("{\"connections\": 50, \"requests_per_minute\": 1000, \"webhooks\": 100}")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  users                 User[]
+  integrationConnections IntegrationConnection[]
+  webhookConfigurations WebhookConfiguration[]
+  webhookLogs           WebhookLog[]
+  menuItems             MenuItem[]
+  orders                Order[]
+  integrationLogs       IntegrationLog[]
+  syncStatus            SyncStatus[]
+  apiKeys               ApiKey[]
+  rateLimits            RateLimit[]
+
+  @@map("organizations")
+  @@index([slug])
+}
+
+model User {
+  id                  String   @id @default(uuid()) @db.Uuid
+  organizationId      String   @map("organization_id") @db.Uuid
+  email               String   @unique @db.VarChar(255)
+  passwordHash        String   @map("password_hash") @db.VarChar(255)
+  firstName           String   @map("first_name") @db.VarChar(100)
+  lastName            String   @map("last_name") @db.VarChar(100)
+  role                String   @default("user") @db.VarChar(50)
+  avatarUrl           String?  @map("avatar_url") @db.VarChar(500)
+  isActive            Boolean  @default(true) @map("is_active")
+  lastLoginAt         DateTime? @map("last_login_at") @db.Timestamptz()
+  emailVerifiedAt     DateTime? @map("email_verified_at") @db.Timestamptz()
+  twoFactorEnabled    Boolean  @default(false) @map("two_factor_enabled")
+  twoFactorSecret     String?  @map("two_factor_secret") @db.VarChar(255)
+  apiKey              String?  @unique @map("api_key") @db.VarChar(255)
+  permissions         Json     @default("[]")
+  settings            Json     @default("{}")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integrationConnections IntegrationConnection[]
+  apiKeys             ApiKey[]
+
+  @@map("users")
+  @@index([organizationId])
+  @@index([email])
+  @@index([apiKey])
+}
+
+// ============================================================================
+// INTEGRATION ENTITIES
+// ============================================================================
+
+model IntegrationProvider {
+  id                 String   @id @default(uuid()) @db.Uuid
+  name               String   @db.VarChar(100)
+  slug               String   @unique @db.VarChar(100)
+  type               String   @db.VarChar(50) // 'pos' or 'delivery'
+  category           String   @db.VarChar(100)
+  logoUrl            String?  @map("logo_url") @db.VarChar(500)
+  website            String?  @db.VarChar(255)
+  description        String?
+  documentationUrl   String?  @map("documentation_url") @db.VarChar(500)
+  apiBaseUrl         String?  @map("api_base_url") @db.VarChar(500)
+  authType           String   @map("auth_type") @db.VarChar(50) // 'oauth2', 'api_key', 'basic_auth'
+  authConfig         Json     @default("{}") @map("auth_config")
+  webhookConfig      Json     @default("{}") @map("webhook_config")
+  rateLimits         Json     @default("{}") @map("rate_limits")
+  supportedFeatures  Json     @default("[]") @map("supported_features")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  integrationConnections IntegrationConnection[]
+
+  @@map("integration_providers")
+}
+
+model IntegrationConnection {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  providerId     String   @map("provider_id") @db.Uuid
+  name           String   @db.VarChar(255)
+  status         String   @default("inactive") @db.VarChar(50) // 'active', 'inactive', 'error', 'pending'
+  authData       Json     @default("{}") @map("auth_data") // encrypted credentials
+  configData     Json     @default("{}") @map("config_data")
+  syncSettings   Json     @default("{}") @map("sync_settings")
+  lastSyncAt     DateTime? @map("last_sync_at") @db.Timestamptz()
+  lastError      String?  @map("last_error")
+  errorCount     Int      @default(0) @map("error_count")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider        IntegrationProvider @relation(fields: [providerId], references: [id])
+  createdByUser   User? @relation(fields: [createdBy], references: [id])
+  webhookConfigurations WebhookConfiguration[]
+  menuItems       MenuItem[]
+  orders          Order[]
+  integrationLogs IntegrationLog[]
+  syncStatus      SyncStatus[]
+
+  @@unique([organizationId, providerId, name])
+  @@map("integration_connections")
+  @@index([organizationId])
+  @@index([providerId])
+  @@index([status])
+}
+
+// ============================================================================
+// WEBHOOK ENTITIES
+// ============================================================================
+
+model WebhookConfiguration {
+  id               String   @id @default(uuid()) @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  connectionId     String?  @map("connection_id") @db.Uuid
+  name             String   @db.VarChar(255)
+  url              String   @db.VarChar(500)
+  method           String   @default("POST") @db.VarChar(10)
+  headers          Json     @default("{}")
+  events           Json     @default("[]") // array of event types
+  filters          Json     @default("{}")
+  secret           String?  @db.VarChar(255)
+  signatureHeader  String   @default("X-Webhook-Signature") @map("signature_header") @db.VarChar(100)
+  timeoutMs        Int      @default(30000) @map("timeout_ms")
+  retryCount       Int      @default(3) @map("retry_count")
+  retryDelayMs     Int      @default(1000) @map("retry_delay_ms")
+  isActive         Boolean  @default(true) @map("is_active")
+  lastTriggeredAt  DateTime? @map("last_triggered_at") @db.Timestamptz()
+  successCount     Int      @default(0) @map("success_count")
+  failureCount     Int      @default(0) @map("failure_count")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection   IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  webhookLogs  WebhookLog[]
+
+  @@map("webhook_configurations")
+  @@index([organizationId])
+  @@index([connectionId])
+}
+
+// ============================================================================
+// MENU & ORDER ENTITIES
+// ============================================================================
+
+model MenuItem {
+  id               String   @id @default(uuid()) @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  connectionId     String   @map("connection_id") @db.Uuid
+  externalId       String   @map("external_id") @db.VarChar(255)
+  name             String   @db.VarChar(255)
+  description      String?
+  category         String?  @db.VarChar(100)
+  price            Decimal? @db.Decimal(10, 2)
+  currency         String   @default("USD") @db.VarChar(3)
+  imageUrl         String?  @map("image_url") @db.VarChar(500)
+  isAvailable      Boolean  @default(true) @map("is_available")
+  modifiers        Json     @default("[]")
+  allergens        Json     @default("[]")
+  nutritionalInfo  Json     @default("{}") @map("nutritional_info")
+  metadata         Json     @default("{}")
+  syncStatus       String   @default("synced") @map("sync_status") @db.VarChar(50) // 'synced', 'pending', 'error'
+  lastSyncedAt     DateTime @default(now()) @map("last_synced_at") @db.Timestamptz()
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection   IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalId])
+  @@map("menu_items")
+  @@index([organizationId])
+  @@index([connectionId])
+  @@index([externalId])
+  @@index([syncStatus])
+}
+
+model Order {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  connectionId   String   @map("connection_id") @db.Uuid
+  externalId     String   @map("external_id") @db.VarChar(255)
+  orderNumber    String?  @map("order_number") @db.VarChar(100)
+  status         String   @db.VarChar(50)
+  customerInfo   Json     @default("{}") @map("customer_info")
+  items          Json     @default("[]")
+  totalAmount    Decimal? @map("total_amount") @db.Decimal(10, 2)
+  currency       String   @default("USD") @db.VarChar(3)
+  paymentStatus  String?  @map("payment_status") @db.VarChar(50)
+  paymentMethod  String?  @map("payment_method") @db.VarChar(50)
+  deliveryInfo   Json     @default("{}") @map("delivery_info")
+  metadata       Json     @default("{}")
+  orderedAt      DateTime? @map("ordered_at") @db.Timestamptz()
+  syncStatus     String   @default("synced") @map("sync_status") @db.VarChar(50)
+  lastSyncedAt   DateTime @default(now()) @map("last_synced_at") @db.Timestamptz()
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection   IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalId])
+  @@map("orders")
+  @@index([organizationId])
+  @@index([connectionId])
+  @@index([externalId])
+  @@index([status])
+  @@index([orderedAt])
+}
+
+// ============================================================================
+// LOGGING & MONITORING ENTITIES
+// ============================================================================
+
+model IntegrationLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
+  connectionId  String?  @map("connection_id") @db.Uuid
+  level         String   @db.VarChar(20) // 'debug', 'info', 'warn', 'error'
+  eventType     String   @map("event_type") @db.VarChar(100)
+  message       String
+  metadata      Json     @default("{}")
+  requestData   Json?    @map("request_data")
+  responseData  Json?    @map("response_data")
+  errorDetails  Json?    @map("error_details")
+  durationMs    Int?     @map("duration_ms")
+  ipAddress     String?  @map("ip_address") @db.Inet
+  userAgent     String?  @map("user_agent")
+  correlationId String?  @map("correlation_id") @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection   IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@map("integration_logs")
+  @@index([organizationId])
+  @@index([connectionId])
+  @@index([level])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model SyncStatus {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  connectionId    String   @map("connection_id") @db.Uuid
+  syncType        String   @map("sync_type") @db.VarChar(50) // 'menu', 'orders', 'inventory'
+  status          String   @db.VarChar(50) // 'pending', 'running', 'completed', 'failed'
+  startedAt       DateTime? @map("started_at") @db.Timestamptz()
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz()
+  itemsProcessed  Int      @default(0) @map("items_processed")
+  itemsTotal      Int      @default(0) @map("items_total")
+  errorMessage    String?  @map("error_message")
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection   IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@map("sync_status")
+  @@index([connectionId])
+  @@index([syncType])
+  @@index([status])
+}
+
+// ============================================================================
+// AUTHENTICATION & AUTHORIZATION ENTITIES
+// ============================================================================
+
+model ApiKey {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  name           String   @db.VarChar(255)
+  keyPrefix      String   @map("key_prefix") @db.VarChar(20)
+  keyHash        String   @map("key_hash") @db.VarChar(255)
+  scopes         Json     @default("[]")
+  rateLimit      Int      @default(1000) @map("rate_limit")
+  isActive       Boolean  @default(true) @map("is_active")
+  expiresAt      DateTime? @map("expires_at") @db.Timestamptz()
+  lastUsedAt     DateTime? @map("last_used_at") @db.Timestamptz()
+  usageCount     Int      @default(0) @map("usage_count")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+  @@index([organizationId])
+  @@index([keyHash])
+}
+
+model RateLimit {
+  id               String   @id @default(uuid()) @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  identifier       String   @db.VarChar(255) // API key, user ID, or IP address
+  identifierType   String   @map("identifier_type") @db.VarChar(50) // 'api_key', 'user', 'ip'
+  endpoint         String?  @db.VarChar(255)
+  requestsCount    Int      @default(0) @map("requests_count")
+  windowStart      DateTime @default(now()) @map("window_start") @db.Timestamptz()
+  windowDurationMs Int      @default(3600000) @map("window_duration_ms") // 1 hour
+  limitValue       Int      @default(1000) @map("limit_value")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([identifier, endpoint, windowStart])
+  @@map("rate_limits")
+  @@index([identifier])
+  @@index([windowStart])
+}
+
+model WebhookLog {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  configurationId   String?  @map("configuration_id") @db.Uuid
+  webhookUrl        String   @map("webhook_url") @db.VarChar(500)
+  method            String   @default("POST") @db.VarChar(10)
+  eventType         String   @map("event_type") @db.VarChar(100)
+  eventId           String?  @map("event_id") @db.VarChar(255)
+  status            String   @db.VarChar(50) // 'pending', 'delivered', 'failed', 'retrying'
+  httpStatusCode    Int?     @map("http_status_code")
+  requestHeaders    Json     @default("{}") @map("request_headers")
+  requestPayload    Json     @default("{}") @map("request_payload")
+  responseHeaders   Json     @default("{}") @map("response_headers")
+  responseBody      Json?    @map("response_body")
+  errorMessage      String?  @map("error_message")
+  errorDetails      Json?    @map("error_details")
+  attemptNumber     Int      @default(1) @map("attempt_number")
+  maxAttempts       Int      @default(3) @map("max_attempts")
+  nextRetryAt       DateTime? @map("next_retry_at") @db.Timestamptz()
+  sentAt            DateTime? @map("sent_at") @db.Timestamptz()
+  deliveredAt       DateTime? @map("delivered_at") @db.Timestamptz()
+  failedAt          DateTime? @map("failed_at") @db.Timestamptz()
+  responseTimeMs    Int?     @map("response_time_ms")
+  ipAddress         String?  @map("ip_address") @db.Inet
+  userAgent         String?  @map("user_agent")
+  correlationId     String?  @map("correlation_id") @db.VarChar(255)
+  signature         String?  @db.VarChar(500)
+  metadata          Json     @default("{}")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  configuration WebhookConfiguration? @relation(fields: [configurationId], references: [id], onDelete: SetNull)
+
+  @@map("webhook_logs")
+  @@index([organizationId])
+  @@index([configurationId])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@index([eventId])
+  @@index([correlationId])
+  @@index([sentAt])
+  @@index([deliveredAt])
+}

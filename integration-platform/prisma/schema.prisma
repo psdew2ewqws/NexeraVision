@@ -1,0 +1,284 @@
+// Prisma schema for NEXARA Integration Platform
+// Webhooks, Orders, and Integration Management
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== WEBHOOK MODELS ====================
+
+model WebhookConfig {
+  id          String   @id @default(cuid())
+  clientId    String   @unique
+  provider    Provider
+  url         String
+  secret      String?
+  apiKey      String?
+  token       String?
+  events      Json     // Array of webhook event types
+  headers     Json?    // Custom headers
+  isActive    Boolean  @default(true)
+  retryConfig Json?    // Retry configuration
+  metadata    Json?    // Additional provider-specific config
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  logs        WebhookLog[]
+  retryQueue  RetryQueue[]
+
+  @@index([provider])
+  @@index([isActive])
+  @@map("webhook_configs")
+}
+
+model WebhookLog {
+  id            String    @id @default(cuid())
+  clientId      String
+  provider      Provider
+  eventType     String
+  payload       Json
+  headers       Json?
+  status        WebhookLogStatus @default(PENDING)
+  responseTime  Int?      // in milliseconds
+  error         String?
+  retryCount    Int       @default(0)
+  maxRetries    Int       @default(3)
+  lastRetryAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  config        WebhookConfig @relation(fields: [clientId], references: [clientId])
+
+  @@index([provider, status])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@index([clientId])
+  @@map("webhook_logs")
+}
+
+model RetryQueue {
+  id            String    @id @default(cuid())
+  webhookLogId  String?
+  clientId      String
+  provider      Provider
+  eventType     String
+  payload       Json
+  headers       Json?
+  retryCount    Int       @default(0)
+  maxRetries    Int       @default(5)
+  nextRetryAt   DateTime
+  status        RetryStatus @default(PENDING)
+  error         String?
+  priority      Int       @default(0) // Higher priority = processed first
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  config        WebhookConfig @relation(fields: [clientId], references: [clientId])
+
+  @@index([status, nextRetryAt])
+  @@index([provider])
+  @@index([priority])
+  @@map("retry_queue")
+}
+
+// ==================== ORDER MODELS ====================
+
+model Order {
+  id                String    @id @default(cuid())
+  externalOrderId   String    @unique
+  provider          Provider
+  clientId          String
+  status            OrderStatus @default(PENDING)
+  customerName      String?
+  customerPhone     String?
+  customerEmail     String?
+  deliveryAddress   Json?
+  items             Json      // Order items array
+  totalAmount       Float
+  currency          String    @default("USD")
+  paymentMethod     String?
+  paymentStatus     PaymentStatus @default(PENDING)
+  notes             String?
+  metadata          Json?     // Provider-specific data
+  estimatedDeliveryTime DateTime?
+  actualDeliveryTime    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  events            OrderEvent[]
+
+  @@index([provider, status])
+  @@index([customerPhone])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderEvent {
+  id          String    @id @default(cuid())
+  orderId     String
+  eventType   String
+  status      String?
+  data        Json?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("order_events")
+}
+
+// ==================== INTEGRATION MODELS ====================
+
+model Integration {
+  id            String    @id @default(cuid())
+  name          String
+  provider      Provider
+  clientId      String    @unique
+  clientSecret  String?
+  apiKey        String?
+  accessToken   String?
+  refreshToken  String?
+  tokenExpiresAt DateTime?
+  baseUrl       String?
+  webhookUrl    String?
+  status        IntegrationStatus @default(INACTIVE)
+  lastSyncAt    DateTime?
+  settings      Json?     // Provider-specific settings
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([provider])
+  @@index([status])
+  @@map("integrations")
+}
+
+model IntegrationLog {
+  id            String    @id @default(cuid())
+  integrationId String
+  action        String
+  status        String
+  request       Json?
+  response      Json?
+  error         String?
+  duration      Int?      // in milliseconds
+  createdAt     DateTime  @default(now())
+
+  @@index([integrationId])
+  @@index([action])
+  @@index([status])
+  @@index([createdAt])
+  @@map("integration_logs")
+}
+
+// ==================== METRICS & ANALYTICS ====================
+
+model WebhookMetrics {
+  id              String    @id @default(cuid())
+  provider        Provider
+  date            DateTime  @db.Date
+  hour            Int       // 0-23
+  totalRequests   Int       @default(0)
+  successCount    Int       @default(0)
+  failureCount    Int       @default(0)
+  avgResponseTime Float     @default(0)
+  minResponseTime Int?
+  maxResponseTime Int?
+  retryCount      Int       @default(0)
+  uniqueClients   Int       @default(0)
+
+  @@unique([provider, date, hour])
+  @@index([provider, date])
+  @@map("webhook_metrics")
+}
+
+model SystemHealth {
+  id              String    @id @default(cuid())
+  service         String
+  status          HealthStatus
+  latency         Int?      // in milliseconds
+  errorRate       Float?
+  lastCheckAt     DateTime
+  metadata        Json?
+
+  @@unique([service])
+  @@map("system_health")
+}
+
+// ==================== ENUMS ====================
+
+enum Provider {
+  CAREEM
+  TALABAT
+  DELIVEROO
+  JAHEZ
+  UBEREATS
+  ZOMATO
+  HUNGERSTATION
+}
+
+enum WebhookLogStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  RETRYING
+}
+
+enum RetryStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  CANCELLED
+  MAX_RETRIES_EXCEEDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  PICKED_UP
+  IN_DELIVERY
+  DELIVERED
+  CANCELLED
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+  SUSPENDED
+  PENDING_SETUP
+}
+
+enum HealthStatus {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+  UNKNOWN
+}

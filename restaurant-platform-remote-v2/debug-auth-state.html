@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Auth State</title>
+</head>
+<body>
+    <h1>Debug Authentication State</h1>
+    <div id="output"></div>
+
+    <script>
+        function debugAuth() {
+            const output = document.getElementById('output');
+
+            // Check localStorage
+            const token = localStorage.getItem('auth-token');
+            const user = localStorage.getItem('user');
+
+            let html = '<h2>Local Storage:</h2>';
+            html += '<p><strong>Token:</strong> ' + (token ? 'Present (' + token.length + ' chars)' : 'Not found') + '</p>';
+            html += '<p><strong>User:</strong> ' + (user ? 'Present' : 'Not found') + '</p>';
+
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    html += '<p><strong>User Data:</strong></p>';
+                    html += '<pre>' + JSON.stringify(userData, null, 2) + '</pre>';
+                } catch (e) {
+                    html += '<p><strong>User Data:</strong> Invalid JSON</p>';
+                }
+            }
+
+            html += '<h2>Test API Call:</h2>';
+
+            if (token) {
+                // Test API call
+                fetch('http://localhost:3001/api/v1/menu/categories', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                })
+                .then(response => {
+                    html += '<p><strong>Categories API Status:</strong> ' + response.status + '</p>';
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('API call failed');
+                    }
+                })
+                .then(data => {
+                    html += '<p><strong>Categories Count:</strong> ' + data.categories.length + '</p>';
+                    output.innerHTML = html;
+                })
+                .catch(error => {
+                    html += '<p><strong>API Error:</strong> ' + error.message + '</p>';
+                    output.innerHTML = html;
+                });
+            } else {
+                html += '<p><strong>No token available for API test</strong></p>';
+                output.innerHTML = html;
+            }
+        }
+
+        // Auto-login function
+        function autoLogin() {
+            fetch('http://localhost:3001/api/v1/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    emailOrUsername: 'admin@test.com',
+                    password: 'password123'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.accessToken) {
+                    localStorage.setItem('auth-token', data.accessToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    alert('Login successful! Check auth state now.');
+                    debugAuth();
+                } else {
+                    alert('Login failed: ' + JSON.stringify(data));
+                }
+            })
+            .catch(error => {
+                alert('Login error: ' + error.message);
+            });
+        }
+
+        // Clear auth
+        function clearAuth() {
+            localStorage.removeItem('auth-token');
+            localStorage.removeItem('user');
+            alert('Auth cleared!');
+            debugAuth();
+        }
+
+        // Run debug on load
+        debugAuth();
+    </script>
+
+    <button onclick="autoLogin()">Auto Login</button>
+    <button onclick="clearAuth()">Clear Auth</button>
+    <button onclick="debugAuth()">Refresh Debug</button>
+
+    <h2>Manual Navigation Test:</h2>
+    <a href="http://localhost:3000/menu/products" target="_blank">Open Menu/Products Page</a>
+</body>
+</html>

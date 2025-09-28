@@ -1,0 +1,206 @@
+{
+  "timestamp": "2025-09-25T06:46:05.822Z",
+  "testId": "perf_test_1758782765822",
+  "apiResults": [
+    {
+      "name": "Health Check",
+      "method": "GET",
+      "path": "/api/v1/health",
+      "status": 200,
+      "responseTime": 35,
+      "success": true,
+      "dataSize": 83,
+      "timestamp": "2025-09-25T06:46:05.859Z"
+    },
+    {
+      "name": "User Login",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "status": 200,
+      "responseTime": 7,
+      "success": true,
+      "dataSize": 213,
+      "timestamp": "2025-09-25T06:46:05.866Z"
+    },
+    {
+      "name": "Get Provider List",
+      "method": "GET",
+      "path": "/api/v1/providers",
+      "status": 404,
+      "responseTime": 9,
+      "success": false,
+      "error": "Request failed with status code 404",
+      "timestamp": "2025-09-25T06:46:05.875Z"
+    },
+    {
+      "name": "Get Orders List",
+      "method": "GET",
+      "path": "/api/v1/orders",
+      "status": 404,
+      "responseTime": 3,
+      "success": false,
+      "error": "Request failed with status code 404",
+      "timestamp": "2025-09-25T06:46:05.878Z"
+    },
+    {
+      "name": "Create Provider",
+      "method": "POST",
+      "path": "/api/v1/providers",
+      "status": 404,
+      "responseTime": 9,
+      "success": false,
+      "error": "Request failed with status code 404",
+      "timestamp": "2025-09-25T06:46:05.887Z"
+    }
+  ],
+  "frontendResults": [
+    {
+      "name": "Login Page",
+      "path": "/login",
+      "url": "http://localhost:3003/login",
+      "status": 200,
+      "loadTime": 35,
+      "success": true,
+      "contentSize": 4044,
+      "hasTitle": true,
+      "hasNavigation": false,
+      "hasForm": true,
+      "timestamp": "2025-09-25T06:46:05.923Z"
+    },
+    {
+      "name": "Dashboard",
+      "path": "/dashboard",
+      "url": "http://localhost:3003/dashboard",
+      "status": 200,
+      "loadTime": 114,
+      "success": true,
+      "contentSize": 1599,
+      "hasTitle": false,
+      "hasNavigation": false,
+      "hasForm": false,
+      "timestamp": "2025-09-25T06:46:06.037Z"
+    },
+    {
+      "name": "Orders Page",
+      "path": "/orders",
+      "url": "http://localhost:3003/orders",
+      "status": 200,
+      "loadTime": 17,
+      "success": true,
+      "contentSize": 1593,
+      "hasTitle": false,
+      "hasNavigation": false,
+      "hasForm": false,
+      "timestamp": "2025-09-25T06:46:06.054Z"
+    },
+    {
+      "name": "Integrations Page",
+      "path": "/integrations",
+      "url": "http://localhost:3003/integrations",
+      "status": 200,
+      "loadTime": 23,
+      "success": true,
+      "contentSize": 1605,
+      "hasTitle": false,
+      "hasNavigation": false,
+      "hasForm": false,
+      "timestamp": "2025-09-25T06:46:06.077Z"
+    }
+  ],
+  "loadTestResults": [
+    {
+      "concurrentUsers": 1,
+      "description": "Single user baseline",
+      "totalRequests": 1,
+      "successCount": 1,
+      "failureCount": 0,
+      "successRate": 100,
+      "totalTime": 4,
+      "avgResponseTime": 4,
+      "maxResponseTime": 4,
+      "minResponseTime": 4,
+      "requestsPerSecond": 250,
+      "timestamp": "2025-09-25T06:46:06.082Z"
+    },
+    {
+      "concurrentUsers": 5,
+      "description": "Light load",
+      "totalRequests": 5,
+      "successCount": 5,
+      "failureCount": 0,
+      "successRate": 100,
+      "totalTime": 14,
+      "avgResponseTime": 10,
+      "maxResponseTime": 11,
+      "minResponseTime": 9,
+      "requestsPerSecond": 357.1428571428571,
+      "timestamp": "2025-09-25T06:46:06.096Z"
+    },
+    {
+      "concurrentUsers": 10,
+      "description": "Medium load",
+      "totalRequests": 10,
+      "successCount": 10,
+      "failureCount": 0,
+      "successRate": 100,
+      "totalTime": 17,
+      "avgResponseTime": 9.6,
+      "maxResponseTime": 11,
+      "minResponseTime": 8,
+      "requestsPerSecond": 588.2352941176471,
+      "timestamp": "2025-09-25T06:46:06.114Z"
+    },
+    {
+      "concurrentUsers": 20,
+      "description": "Heavy load",
+      "totalRequests": 20,
+      "successCount": 20,
+      "failureCount": 0,
+      "successRate": 100,
+      "totalTime": 28,
+      "avgResponseTime": 16.55,
+      "maxResponseTime": 21,
+      "minResponseTime": 13,
+      "requestsPerSecond": 714.2857142857142,
+      "timestamp": "2025-09-25T06:46:06.142Z"
+    }
+  ],
+  "performanceMetrics": {
+    "performanceScore": 0,
+    "apiAverageResponseTime": 12.6,
+    "frontendAverageLoadTime": 47.25,
+    "apiSuccessRate": 40,
+    "frontendSuccessRate": 100
+  },
+  "criticalIssues": [
+    {
+      "type": "API Error",
+      "severity": "Critical",
+      "message": "Get Provider List failed: Request failed with status code 404"
+    },
+    {
+      "type": "API Error",
+      "severity": "Critical",
+      "message": "Get Orders List failed: Request failed with status code 404"
+    },
+    {
+      "type": "API Error",
+      "severity": "Critical",
+      "message": "Create Provider failed: Request failed with status code 404"
+    }
+  ],
+  "recommendations": [
+    {
+      "category": "Security",
+      "priority": "Medium",
+      "issue": "Security headers and authentication flow need review",
+      "recommendation": "Implement HTTPS, add security headers (CSP, HSTS), rate limiting, and conduct security audit."
+    },
+    {
+      "category": "Monitoring",
+      "priority": "Medium",
+      "issue": "No performance monitoring in place",
+      "recommendation": "Implement APM solution (New Relic, DataDog), add logging aggregation, and set up performance alerts."
+    }
+  ]
+}

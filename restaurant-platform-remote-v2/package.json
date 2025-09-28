@@ -1,0 +1,11 @@
+{
+  "name": "restaurant-platform-remote-v2",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node test-menu-api.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.0"
+  }
+}

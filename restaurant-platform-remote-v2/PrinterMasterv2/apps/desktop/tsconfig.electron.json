@@ -1,0 +1,33 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "noEmit": false,
+    "outDir": "out",
+    "sourceMap": false,
+    "declaration": false,
+    "declarationMap": false,
+    "removeComments": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "strict": false,
+    "noImplicitAny": false
+  },
+  "include": [
+    "src/main/**/*",
+    "src/preload/**/*",
+    "src/types/**/*"
+  ],
+  "exclude": [
+    "src/renderer/**/*",
+    "node_modules",
+    "out",
+    "dist",
+    ".next"
+  ]
+}

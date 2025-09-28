@@ -1,0 +1,270 @@
+// Additional Prisma schema extension for comprehensive sync tracking
+// This file contains the extended schema models for menu sync functionality
+
+// Add to the main schema.prisma file
+
+model SyncJobQueue {
+  id                     String                   @id @default(uuid())
+  companyId              String                   @map("company_id")
+  assignmentId           String                   @map("assignment_id")
+  jobType                SyncJobType              @map("job_type")
+  priority               SyncJobPriority          @default(normal)
+  status                 SyncJobStatus            @default(pending)
+
+  // Job configuration
+  syncType               String                   @map("sync_type") // 'full_menu', 'prices_only', 'availability_only'
+  platformMenuId         String?                  @map("platform_menu_id")
+  forceSync              Boolean                  @default(false) @map("force_sync")
+  batchSize              Int                      @default(50) @map("batch_size")
+
+  // Scheduling
+  scheduledAt            DateTime?                @map("scheduled_at")
+  startedAt              DateTime?                @map("started_at")
+  completedAt            DateTime?                @map("completed_at")
+
+  // Progress tracking
+  totalItems             Int                      @default(0) @map("total_items")
+  processedItems         Int                      @default(0) @map("processed_items")
+  successItems           Int                      @default(0) @map("success_items")
+  failedItems            Int                      @default(0) @map("failed_items")
+  progressPercentage     Int                      @default(0) @map("progress_percentage")
+
+  // Error handling
+  retryCount             Int                      @default(0) @map("retry_count")
+  maxRetries             Int                      @default(3) @map("max_retries")
+  retryDelay             Int                      @default(5000) @map("retry_delay") // milliseconds
+  errorMessage           String?                  @map("error_message")
+  errorDetails           Json?                    @map("error_details")
+
+  // Performance metrics
+  executionTime          Int?                     @map("execution_time") // milliseconds
+  avgItemProcessingTime  Float?                   @map("avg_item_processing_time")
+  throughputPerSecond    Float?                   @map("throughput_per_second")
+
+  // Metadata
+  requestPayload         Json?                    @map("request_payload")
+  responsePayload        Json?                    @map("response_payload")
+  userInitiated          Boolean                  @default(false) @map("user_initiated")
+  triggeredBy            String?                  @map("triggered_by") // user_id or system
+
+  createdAt              DateTime                 @default(now()) @map("created_at")
+  updatedAt              DateTime                 @updatedAt @map("updated_at")
+
+  // Relations
+  company                Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignment             CompanyChannelAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  items                  SyncJobItem[]
+  logs                   SyncJobLog[]
+
+  @@index([companyId, status])
+  @@index([assignmentId, status])
+  @@index([status, scheduledAt])
+  @@index([priority, createdAt])
+  @@index([startedAt])
+  @@index([completedAt])
+  @@map("sync_job_queue")
+}
+
+model SyncJobItem {
+  id                     String                   @id @default(uuid())
+  syncJobId              String                   @map("sync_job_id")
+
+  // Item identification
+  itemType               SyncItemType             @map("item_type") // 'category', 'product', 'modifier'
+  localItemId            String                   @map("local_item_id") // Internal ID
+  externalItemId         String?                  @map("external_item_id") // Channel ID
+  itemName               String                   @map("item_name")
+
+  // Sync status
+  status                 SyncItemStatus           @default(pending)
+  processedAt            DateTime?                @map("processed_at")
+
+  // Data tracking
+  originalData           Json?                    @map("original_data")
+  transformedData        Json?                    @map("transformed_data")
+  channelResponse        Json?                    @map("channel_response")
+
+  // Error handling
+  errorMessage           String?                  @map("error_message")
+  errorCode              String?                  @map("error_code")
+  retryCount             Int                      @default(0) @map("retry_count")
+
+  // Performance
+  processingTime         Int?                     @map("processing_time") // milliseconds
+
+  createdAt              DateTime                 @default(now()) @map("created_at")
+  updatedAt              DateTime                 @updatedAt @map("updated_at")
+
+  // Relations
+  syncJob                SyncJobQueue             @relation(fields: [syncJobId], references: [id], onDelete: Cascade)
+
+  @@index([syncJobId, status])
+  @@index([itemType, status])
+  @@index([localItemId])
+  @@index([externalItemId])
+  @@map("sync_job_items")
+}
+
+model SyncJobLog {
+  id                     String                   @id @default(uuid())
+  syncJobId              String                   @map("sync_job_id")
+
+  // Log details
+  level                  SyncLogLevel             @default(info)
+  message                String
+  details                Json?
+
+  // Context
+  phase                  String?                  // 'validation', 'transformation', 'upload', 'completion'
+  itemId                 String?                  @map("item_id") // Reference to specific item if applicable
+
+  timestamp              DateTime                 @default(now())
+
+  // Relations
+  syncJob                SyncJobQueue             @relation(fields: [syncJobId], references: [id], onDelete: Cascade)
+
+  @@index([syncJobId, timestamp])
+  @@index([level, timestamp])
+  @@map("sync_job_logs")
+}
+
+model SyncConfiguration {
+  id                     String                   @id @default(uuid())
+  companyId              String                   @map("company_id")
+  assignmentId           String                   @map("assignment_id")
+
+  // Configuration settings
+  autoSyncEnabled        Boolean                  @default(true) @map("auto_sync_enabled")
+  syncInterval           Int                      @default(15) @map("sync_interval") // minutes
+  syncTimeWindow         Json?                    @map("sync_time_window") // {start: "09:00", end: "23:00"}
+
+  // Sync options
+  fullSyncFrequency      String                   @default("daily") @map("full_sync_frequency") // "hourly", "daily", "weekly"
+  incrementalSyncEnabled Boolean                  @default(true) @map("incremental_sync_enabled")
+  priceOnlySync          Boolean                  @default(false) @map("price_only_sync")
+  availabilityOnlySync   Boolean                  @default(false) @map("availability_only_sync")
+
+  // Performance settings
+  batchSize              Int                      @default(50) @map("batch_size")
+  maxConcurrentJobs      Int                      @default(3) @map("max_concurrent_jobs")
+  retryAttempts          Int                      @default(3) @map("retry_attempts")
+  retryDelay             Int                      @default(5000) @map("retry_delay")
+
+  // Notification settings
+  notifyOnSuccess        Boolean                  @default(false) @map("notify_on_success")
+  notifyOnFailure        Boolean                  @default(true) @map("notify_on_failure")
+  notificationEmails     String[]                 @map("notification_emails")
+
+  // Advanced settings
+  customTransformation   Json?                    @map("custom_transformation")
+  fieldMappings          Json?                    @map("field_mappings")
+  businessRules          Json?                    @map("business_rules")
+
+  createdAt              DateTime                 @default(now()) @map("created_at")
+  updatedAt              DateTime                 @updatedAt @map("updated_at")
+
+  // Relations
+  company                Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignment             CompanyChannelAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId])
+  @@index([companyId])
+  @@map("sync_configurations")
+}
+
+model SyncAnalytics {
+  id                     String                   @id @default(uuid())
+  companyId              String                   @map("company_id")
+  assignmentId           String                   @map("assignment_id")
+
+  // Time period
+  periodStart            DateTime                 @map("period_start")
+  periodEnd              DateTime                 @map("period_end")
+
+  // Sync statistics
+  totalSyncs             Int                      @default(0) @map("total_syncs")
+  successfulSyncs        Int                      @default(0) @map("successful_syncs")
+  failedSyncs            Int                      @default(0) @map("failed_syncs")
+  retriedSyncs           Int                      @default(0) @map("retried_syncs")
+
+  // Performance metrics
+  avgExecutionTime       Float?                   @map("avg_execution_time")
+  minExecutionTime       Int?                     @map("min_execution_time")
+  maxExecutionTime       Int?                     @map("max_execution_time")
+  avgThroughput          Float?                   @map("avg_throughput")
+
+  // Item statistics
+  totalItemsProcessed    Int                      @default(0) @map("total_items_processed")
+  totalItemsSuccess      Int                      @default(0) @map("total_items_success")
+  totalItemsFailed       Int                      @default(0) @map("total_items_failed")
+
+  // Error analysis
+  commonErrors           Json?                    @map("common_errors")
+  errorCategories        Json?                    @map("error_categories")
+
+  // Trends
+  syncFrequency          Float?                   @map("sync_frequency") // syncs per day
+  successRate            Float?                   @map("success_rate") // percentage
+  reliabilityScore       Float?                   @map("reliability_score") // 0-100
+
+  createdAt              DateTime                 @default(now()) @map("created_at")
+
+  // Relations
+  company                Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignment             CompanyChannelAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, periodStart])
+  @@index([assignmentId, periodStart])
+  @@index([periodStart, periodEnd])
+  @@map("sync_analytics")
+}
+
+// Enums
+enum SyncJobType {
+  manual
+  scheduled
+  automatic
+  triggered
+}
+
+enum SyncJobPriority {
+  immediate
+  high
+  normal
+  low
+  batch
+}
+
+enum SyncJobStatus {
+  pending
+  queued
+  running
+  completed
+  failed
+  cancelled
+  retrying
+}
+
+enum SyncItemType {
+  category
+  product
+  modifier
+  variation
+  image
+}
+
+enum SyncItemStatus {
+  pending
+  processing
+  completed
+  failed
+  skipped
+}
+
+enum SyncLogLevel {
+  debug
+  info
+  warning
+  error
+  critical
+}

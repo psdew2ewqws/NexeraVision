@@ -1,0 +1,134 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Production builds
+dist/
+build/
+.next/
+out/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+webserver.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage/
+.nyc_output/
+
+# Database
+*.sqlite
+*.sqlite3
+postgres-data/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# System files
+.anydesk/
+.bash_history
+.bash_logout
+.bashrc
+.bashrc_claude_permissions
+.cache/
+.claude.json
+.claude.json.backup
+.claude/
+.config/
+.cups/
+.docker/
+.dotnet/
+.electron-gyp/
+.git-credentials
+.gitconfig
+.gnupg/
+.java/
+.lesshst
+.local/
+.m2/
+.npm/
+.password-store/
+.pearrc
+.pgadmin/
+.pkg-cache/
+.pki/
+.playwright-mcp/
+.pm2/
+.printermaster/
+.profile
+.psql_history
+.qz.printer.action.html.WebApp/
+.restaurant-pos/
+.restaurant-printer-discovery/
+.ssh/
+.sudo_as_admin_successful
+.vboxclient-*
+.wget-hsts
+.wine/
+snap/
+
+# Desktop folders (not needed in repo)
+Desktop/
+Documents/
+Pictures/
+
+# Backup and archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+Backupv1*
+
+# Java crash logs
+hs_err_pid*.log
+
+# Test files (keep only organized test directories)
+test-*.js
+test-*.html
+print-test.html
+mirapos-test.sh
+menuhere-printer-service.js
+start-menuhere.sh
+
+# Docker shared workspace (if not part of project)
+docker-shared-workspace/
+
+# Downloads (not part of project)
+Downloads/
+
+# QZ Tray (separate installation)
+qz-tray/
+
+# Keep project directories
+!restaurant-platform-remote-v2/
+!integration-platform/
+
+# Keep important documentation
+!*.md
+!README.md

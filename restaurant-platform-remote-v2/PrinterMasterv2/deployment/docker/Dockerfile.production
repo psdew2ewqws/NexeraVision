@@ -1,0 +1,94 @@
+# PrinterMaster v2 - Production Dockerfile
+# Multi-stage build for enterprise deployment
+
+# Build stage
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    git \
+    curl
+
+# Copy package files
+COPY package*.json ./
+COPY apps/backend/package*.json ./apps/backend/
+COPY packages/shared/package*.json ./packages/shared/
+COPY packages/printer-sdk/package*.json ./packages/printer-sdk/
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY . .
+
+# Build shared packages
+RUN cd packages/shared && npm run build
+RUN cd packages/printer-sdk && npm run build
+
+# Build backend
+RUN cd apps/backend && npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Create app user
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -S appuser -u 1001 -G appgroup
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    tini \
+    curl \
+    ca-certificates
+
+# Copy built application
+COPY --from=builder --chown=appuser:appgroup /app/apps/backend/dist ./dist
+COPY --from=builder --chown=appuser:appgroup /app/apps/backend/package*.json ./
+COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
+
+# Copy database migrations
+COPY --from=builder --chown=appuser:appgroup /app/apps/backend/src/database/migrations ./migrations
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/uploads /app/temp && \
+    chown -R appuser:appgroup /app
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3001
+ENV LOG_LEVEL=info
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 3001
+
+# Use tini as init system
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Start application
+CMD ["node", "dist/main.js"]
+
+# Labels for metadata
+LABEL \
+    org.opencontainers.image.title="PrinterMaster v2 Backend" \
+    org.opencontainers.image.description="Enterprise printer management backend API" \
+    org.opencontainers.image.vendor="Restaurant Platform" \
+    org.opencontainers.image.version="2.0.0" \
+    org.opencontainers.image.created="2024-09-13" \
+    org.opencontainers.image.source="https://github.com/restaurant-platform/printer-master-v2"

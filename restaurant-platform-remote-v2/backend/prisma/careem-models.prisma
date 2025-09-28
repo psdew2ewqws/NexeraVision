@@ -1,0 +1,81 @@
+// Add these models to your existing schema.prisma file
+
+// Careem Integration Models
+model CareemOrder {
+  id                String              @id @default(uuid())
+  careemOrderId     String              @unique @map("careem_order_id")
+  companyId         String              @map("company_id")
+  branchId          String              @map("branch_id")
+
+  // Order Data
+  status            CareemOrderStatus   @default(pending)
+  orderData         Json                @map("order_data")
+  customerData      Json                @map("customer_data")
+  itemsData         Json                @map("items_data")
+  pricingData       Json                @map("pricing_data")
+
+  // Integration Status
+  processedAt       DateTime?           @map("processed_at")
+  internalOrderId   String?             @map("internal_order_id")
+  posOrderId        String?             @map("pos_order_id")
+  errorMessage      String?             @map("error_message")
+
+  // Timestamps
+  careemCreatedAt   DateTime            @map("careem_created_at")
+  careemUpdatedAt   DateTime            @map("careem_updated_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  company           Company             @relation(fields: [companyId], references: [id])
+  branch            Branch              @relation(fields: [branchId], references: [id])
+  events            CareemWebhookEvent[]
+
+  @@index([careemOrderId])
+  @@index([companyId, status])
+  @@index([branchId, status])
+  @@map("careem_orders")
+}
+
+model CareemWebhookEvent {
+  id              String              @id @default(uuid())
+  careemOrderId   String?             @map("careem_order_id")
+  eventType       String              @map("event_type")
+  eventData       Json                @map("event_data")
+  signature       String?
+
+  // Processing Status
+  processed       Boolean             @default(false)
+  processedAt     DateTime?           @map("processed_at")
+  errorMessage    String?             @map("error_message")
+  retryCount      Int                 @default(0) @map("retry_count")
+
+  // Timestamps
+  receivedAt      DateTime            @default(now()) @map("received_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  careemOrder     CareemOrder?        @relation(fields: [careemOrderId], references: [careemOrderId])
+
+  @@index([eventType, processed])
+  @@index([careemOrderId])
+  @@map("careem_webhook_events")
+}
+
+enum CareemOrderStatus {
+  pending
+  accepted
+  preparing
+  ready
+  out_for_delivery
+  delivered
+  cancelled
+  rejected
+}
+
+// Add to existing Company model:
+// careemOrders       CareemOrder[]
+
+// Add to existing Branch model:
+// careemOrders       CareemOrder[]

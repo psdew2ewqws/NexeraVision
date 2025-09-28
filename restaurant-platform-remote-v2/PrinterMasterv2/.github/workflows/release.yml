@@ -1,0 +1,216 @@
+name: Release Desktop Application
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v2.0.1)'
+        required: true
+        type: string
+
+env:
+  NODE_VERSION: '18'
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Windows
+            os: windows-latest
+            args: --win
+          - name: macOS
+            os: macos-latest
+            args: --mac
+          - name: Linux
+            os: ubuntu-latest
+            args: --linux
+
+    runs-on: ${{ matrix.platform.os }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: PrinterMasterv2/package-lock.json
+
+      - name: Setup Python (for native modules)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies (Linux)
+        if: matrix.platform.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libgtk-3-dev libgbm-dev
+          sudo apt-get install -y build-essential libudev-dev
+
+      - name: Install dependencies
+        working-directory: PrinterMasterv2
+        run: npm ci
+
+      - name: Install desktop app dependencies
+        working-directory: PrinterMasterv2/apps/desktop
+        run: npm ci
+
+      - name: Build Next.js application
+        working-directory: PrinterMasterv2/apps/desktop
+        run: npm run build:next
+
+      - name: Prepare for code signing (macOS)
+        if: matrix.platform.os == 'macos-latest'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo "Code signing will be configured"
+          # Add keychain setup here when certificates are available
+
+      - name: Prepare for code signing (Windows)
+        if: matrix.platform.os == 'windows-latest'
+        env:
+          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+        run: |
+          echo "Code signing will be configured"
+          # Add certificate setup here when available
+
+      - name: Build and package application
+        working-directory: PrinterMasterv2/apps/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+        run: |
+          npm run dist -- ${{ matrix.platform.args }} --publish=never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.platform.name }}-build
+          path: |
+            PrinterMasterv2/dist/desktop/*.exe
+            PrinterMasterv2/dist/desktop/*.dmg
+            PrinterMasterv2/dist/desktop/*.zip
+            PrinterMasterv2/dist/desktop/*.AppImage
+            PrinterMasterv2/dist/desktop/*.deb
+            PrinterMasterv2/dist/desktop/*.rpm
+          retention-days: 7
+
+  create-release:
+    needs: release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: RestaurantPrint Pro ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          body: |
+            ## 🚀 RestaurantPrint Pro ${{ github.ref_name }}
+            
+            ### Enterprise Printer Management System
+            
+            **What's New:**
+            - Enhanced auto-updater with better user experience
+            - Improved error handling and logging
+            - Cross-platform compatibility improvements
+            - Performance optimizations
+            
+            ### 📥 Downloads
+            
+            Choose the appropriate installer for your operating system:
+            
+            **Windows:**
+            - `.exe` - Windows installer (recommended)
+            - `-portable.exe` - Portable version (no installation required)
+            
+            **macOS:**
+            - `.dmg` - macOS installer (Intel & Apple Silicon)
+            
+            **Linux:**
+            - `.AppImage` - Universal Linux application
+            - `.deb` - Debian/Ubuntu package
+            - `.rpm` - Red Hat/CentOS/SUSE package
+            
+            ### 🔧 System Requirements
+            
+            - **Windows:** Windows 10 or later (64-bit)
+            - **macOS:** macOS 10.15 Catalina or later
+            - **Linux:** Ubuntu 18.04+ / CentOS 7+ / similar distribution
+            
+            ### 📋 Installation Notes
+            
+            1. Download the appropriate installer for your platform
+            2. Run the installer with administrator privileges
+            3. Launch RestaurantPrint Pro
+            4. Enter your branch license key to activate
+            5. The application will auto-discover compatible printers
+            
+            ### 🔄 Auto-Update
+            
+            This version includes automatic update functionality. The application will:
+            - Check for updates every 4 hours
+            - Download updates automatically in the background
+            - Prompt for restart when updates are ready
+            - Maintain your settings during updates
+            
+            ---
+            
+            **Full Changelog:** [View Changes](https://github.com/restaurant-platform/printer-master-v2/compare/v2.0.0...${{ github.ref_name }})
+
+      - name: Upload Release Assets
+        run: |
+          # Upload all built artifacts to the release
+          for file in artifacts/**/*; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file"
+              gh release upload ${{ github.ref_name }} "$file" --clobber
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-success:
+    needs: [release, create-release]
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: Notify Deployment Success
+        run: |
+          echo "✅ Release ${{ github.ref_name }} created successfully!"
+          echo "📦 Artifacts uploaded for all platforms"
+          echo "🔗 Release URL: https://github.com/restaurant-platform/printer-master-v2/releases/tag/${{ github.ref_name }}"

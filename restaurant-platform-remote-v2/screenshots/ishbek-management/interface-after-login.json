@@ -1,0 +1,18 @@
+{
+  "step": "after-login",
+  "url": "https://integration.ishbek.com/Management/views/index.php",
+  "title": "404 Page Not Found",
+  "timestamp": "2025-09-24T20:03:40.400Z",
+  "clickableElements": [
+    {
+      "text": "Visit the Home Page",
+      "href": "https://integration.ishbek.com/Management/",
+      "className": "",
+      "id": "",
+      "tagName": "a",
+      "visible": true,
+      "clickable": true
+    }
+  ],
+  "isDashboard": false
+}

@@ -1,0 +1,310 @@
+# PrinterMaster Service Orchestration
+#
+# Docker Compose configuration for enterprise deployment:
+# - Service orchestration with restart policies
+# - USB device mounting for printer access
+# - CUPS socket mounting for printing
+# - Health checks and monitoring
+# - Log management and rotation
+# - Network configuration
+# - Volume management
+# - Development and production profiles
+
+version: '3.8'
+
+services:
+  # Main PrinterMaster Service
+  printermaster:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-unknown}
+        VERSION: ${VERSION:-2.0.0}
+
+    image: printermaster:${TAG:-latest}
+    container_name: printermaster-service
+
+    # Restart policy for high availability
+    restart: unless-stopped
+
+    # Network configuration
+    ports:
+      - "8182:8182"  # Service API port
+
+    # Environment variables
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PRINTER_SERVICE_PORT=8182
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - UV_THREADPOOL_SIZE=4
+      - NODE_OPTIONS=--max-old-space-size=1024
+
+      # USB and printer configuration
+      - USB_MONITORING_INTERVAL=5000
+      - PRINTER_DISCOVERY_INTERVAL=30000
+      - ENABLE_USB_HOTPLUG=true
+
+      # Health monitoring
+      - HEALTH_CHECK_INTERVAL=30000
+      - MEMORY_WARNING_THRESHOLD=512
+      - CPU_WARNING_THRESHOLD=85
+
+      # Service configuration
+      - DOCKER_CONTAINER=true
+      - DISABLE_AUTO_UPDATE=true
+      - AUTO_RESTART_ON_FAILURE=true
+
+      # Backend connectivity
+      - API_BASE_URL=${API_BASE_URL:-http://host.docker.internal:3001}
+      - WEBSOCKET_URL=${WEBSOCKET_URL:-http://host.docker.internal:3001}
+
+    # Volume mounts for persistence
+    volumes:
+      # Application data
+      - printermaster_logs:/app/logs
+      - printermaster_licenses:/app/licenses
+      - printermaster_data:/app/data
+
+      # USB device access
+      - /dev/bus/usb:/dev/bus/usb:rw
+      - /dev:/dev:rw
+
+      # CUPS socket for printing
+      - /run/cups/cups.sock:/run/cups/cups.sock:rw
+      - /etc/cups:/etc/cups:ro
+
+      # System timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # Device access for USB printers
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+
+    # Privileged mode for hardware access
+    privileged: true
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8182/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        compress: "true"
+
+    # User and security
+    user: "1001:1001"
+
+    # Network mode
+    network_mode: bridge
+
+    # DNS configuration
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+    # Labels for monitoring and management
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.printermaster.rule=Host(`printermaster.local`)"
+      - "traefik.http.services.printermaster.loadbalancer.server.port=8182"
+      - "com.docker.compose.service=printermaster"
+      - "com.restaurant-platform.service=printer-management"
+      - "monitoring.prometheus.scrape=true"
+      - "monitoring.prometheus.port=8182"
+      - "monitoring.prometheus.path=/metrics"
+
+  # Optional: Monitoring service
+  printermaster-monitor:
+    image: printermaster:${TAG:-latest}
+    container_name: printermaster-monitor
+    restart: unless-stopped
+
+    command: ["node", "service/monitor.js"]
+
+    ports:
+      - "8184:8184"
+
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - MONITOR_PORT=8184
+      - TARGET_SERVICE_URL=http://printermaster:8182
+      - MONITOR_INTERVAL=30000
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+    volumes:
+      - printermaster_logs:/app/logs
+
+    depends_on:
+      printermaster:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8184/health"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+    labels:
+      - "com.docker.compose.service=printermaster-monitor"
+      - "com.restaurant-platform.service=printer-monitoring"
+
+  # Optional: Log aggregation
+  log-aggregator:
+    image: fluentd:v1.16-1
+    container_name: printermaster-logs
+    restart: unless-stopped
+
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+
+    volumes:
+      - printermaster_logs:/fluentd/log:ro
+      - ./config/fluentd.conf:/fluentd/etc/fluent.conf:ro
+
+    environment:
+      - FLUENTD_CONF=fluent.conf
+
+    depends_on:
+      - printermaster
+
+    profiles:
+      - monitoring
+
+    labels:
+      - "com.docker.compose.service=log-aggregator"
+
+# Volume definitions
+volumes:
+  printermaster_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/logs
+
+  printermaster_licenses:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/licenses
+
+  printermaster_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/data
+
+# Network definitions
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Additional profiles for different deployment scenarios
+x-common-variables: &common-variables
+  NODE_ENV: ${NODE_ENV:-production}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  UV_THREADPOOL_SIZE: 4
+
+# Development override
+x-development: &development
+  <<: *common-variables
+  NODE_ENV: development
+  LOG_LEVEL: debug
+  PRINTER_DISCOVERY_INTERVAL: 10000
+  HEALTH_CHECK_INTERVAL: 15000
+
+---
+# Development compose override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+# docker-compose.dev.yml content would be:
+version: '3.8'
+
+services:
+  printermaster:
+    build:
+      target: development
+    environment:
+      <<: *development
+    volumes:
+      - ../:/app:rw  # Mount source for development
+    ports:
+      - "8182:8182"
+      - "9229:9229"  # Debug port
+    command: ["npm", "run", "dev:service"]
+
+---
+# Production deployment commands:
+#
+# 1. Build and start:
+#    docker-compose up -d --build
+#
+# 2. Scale service (if needed):
+#    docker-compose up -d --scale printermaster=2
+#
+# 3. Update service:
+#    docker-compose pull
+#    docker-compose up -d --no-deps printermaster
+#
+# 4. View logs:
+#    docker-compose logs -f printermaster
+#
+# 5. Health check:
+#    docker-compose exec printermaster curl http://localhost:8182/health
+#
+# 6. Connect to container:
+#    docker-compose exec printermaster sh
+#
+# 7. Stop and cleanup:
+#    docker-compose down -v
+#
+# 8. Backup volumes:
+#    docker run --rm -v printermaster_logs:/source -v $(pwd):/backup alpine tar czf /backup/logs-backup.tar.gz -C /source .
+#
+# Environment variables file (.env):
+# NODE_ENV=production
+# LOG_LEVEL=info
+# TAG=latest
+# VERSION=2.0.0
+# API_BASE_URL=http://host.docker.internal:3001
+# WEBSOCKET_URL=http://host.docker.internal:3001
+#
+# Production deployment with Traefik:
+# docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Development with debugging:
+# docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d

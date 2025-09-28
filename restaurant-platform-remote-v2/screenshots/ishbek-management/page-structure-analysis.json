@@ -1,0 +1,37 @@
+{
+  "title": "Ishbek",
+  "url": "https://integration.ishbek.com/Management/",
+  "forms": [
+    {
+      "index": 0,
+      "action": "https://integration.ishbek.com/Management/",
+      "method": "get",
+      "inputCount": 2
+    }
+  ],
+  "links": [],
+  "buttons": [
+    {
+      "text": "Login",
+      "type": "submit"
+    },
+    {
+      "text": "×",
+      "type": "button"
+    },
+    {
+      "text": "OK",
+      "type": "button"
+    },
+    {
+      "text": "No",
+      "type": "button"
+    },
+    {
+      "text": "Cancel",
+      "type": "button"
+    }
+  ],
+  "tables": [],
+  "divs": []
+}

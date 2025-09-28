@@ -1,0 +1,44 @@
+{
+  "name": "nexara-dashboard",
+  "version": "1.0.0",
+  "description": "NEXARA Integration Platform Dashboard - Real-time monitoring and management",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3003",
+    "build": "next build",
+    "start": "next start -p 3003",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@headlessui/react": "^1.7.17",
+    "@heroicons/react": "^2.0.18",
+    "@types/node": "20.8.6",
+    "@types/react": "18.2.28",
+    "@types/react-dom": "18.2.13",
+    "autoprefixer": "10.4.16",
+    "axios": "^1.5.1",
+    "chart.js": "^4.4.0",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "eslint": "8.51.0",
+    "eslint-config-next": "13.5.6",
+    "lucide-react": "^0.288.0",
+    "next": "13.5.6",
+    "postcss": "8.4.31",
+    "react": "18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "18.2.0",
+    "socket.io-client": "^4.7.2",
+    "tailwindcss": "3.3.5",
+    "typescript": "5.2.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.6",
+    "@types/socket.io-client": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

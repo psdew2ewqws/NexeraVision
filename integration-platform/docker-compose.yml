@@ -1,0 +1,267 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgres:15
+    container_name: integration-postgres
+    environment:
+      POSTGRES_DB: integration_platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: E$$athecode006
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - integration-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: integration-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - integration-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: integration-api-gateway
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:E$$athecode006@postgres:5432/integration_platform
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - API_PREFIX=api/v1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - integration-network
+    volumes:
+      - ./backend/uploads:/app/uploads
+    restart: unless-stopped
+
+  # Integration Registry Service
+  integration-registry:
+    build:
+      context: ./microservices/integration-registry-service
+      dockerfile: Dockerfile
+    container_name: integration-registry
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:E$$athecode006@postgres:5432/integration_platform
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=4001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - integration-network
+    restart: unless-stopped
+
+  # POS Adapter Service
+  pos-adapter:
+    build:
+      context: ./microservices/pos-adapter-service
+      dockerfile: Dockerfile
+    container_name: pos-adapter
+    ports:
+      - "4002:4002"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:E$$athecode006@postgres:5432/integration_platform
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=4002
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - integration-network
+    restart: unless-stopped
+
+  # Delivery Service
+  delivery-service:
+    build:
+      context: ./microservices/delivery-service
+      dockerfile: Dockerfile
+    container_name: delivery-service
+    ports:
+      - "4003:4003"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:E$$athecode006@postgres:5432/integration_platform
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=4003
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - integration-network
+    restart: unless-stopped
+
+  # Webhook Router
+  webhook-router:
+    build:
+      context: ./microservices/webhook-router
+      dockerfile: Dockerfile
+    container_name: webhook-router
+    ports:
+      - "4004:4004"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:E$$athecode006@postgres:5432/integration_platform
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=4004
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - integration-network
+    restart: unless-stopped
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: ./microservices/analytics-service
+      dockerfile: Dockerfile
+    container_name: analytics-service
+    ports:
+      - "4005:4005"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:E$$athecode006@postgres:5432/integration_platform
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=4005
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - integration-network
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./microservices/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "4006:4006"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:E$$athecode006@postgres:5432/integration_platform
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=4006
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - integration-network
+    restart: unless-stopped
+
+  # Menu Sync Service
+  menu-sync-service:
+    build:
+      context: ./microservices/menu-sync-service
+      dockerfile: Dockerfile
+    container_name: menu-sync-service
+    ports:
+      - "4007:4007"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:E$$athecode006@postgres:5432/integration_platform
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=4007
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - integration-network
+    restart: unless-stopped
+
+  # Order Sync Service
+  order-sync-service:
+    build:
+      context: ./microservices/order-sync-service
+      dockerfile: Dockerfile
+    container_name: order-sync-service
+    ports:
+      - "4008:4008"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:E$$athecode006@postgres:5432/integration_platform
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=4008
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - integration-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: integration-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api-gateway:4000/api/v1
+      - NEXT_PUBLIC_WS_URL=ws://api-gateway:4000
+      - NODE_ENV=production
+    depends_on:
+      - api-gateway
+    networks:
+      - integration-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  integration-network:
+    driver: bridge

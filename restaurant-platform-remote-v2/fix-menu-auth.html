@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Menu Auth</title>
+</head>
+<body>
+    <h1>Fix Menu Authentication</h1>
+    <div id="status">Loading...</div>
+    <div id="actions" style="margin-top: 20px;"></div>
+
+    <script>
+        async function checkAndFixAuth() {
+            const statusDiv = document.getElementById('status');
+            const actionsDiv = document.getElementById('actions');
+
+            // Check current auth state
+            const token = localStorage.getItem('auth-token');
+            const user = localStorage.getItem('user');
+
+            if (!token || !user) {
+                statusDiv.innerHTML = '❌ No authentication found. Logging in...';
+
+                try {
+                    const response = await fetch('http://localhost:3001/api/v1/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            emailOrUsername: 'admin@test.com',
+                            password: 'password123'
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('auth-token', data.accessToken);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+
+                        statusDiv.innerHTML = '✅ Authentication successful!<br>User: ' + data.user.email + '<br>Role: ' + data.user.role;
+
+                        actionsDiv.innerHTML = '<a href="http://localhost:3000/menu/products" target="_blank" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 5px;">Open Menu/Products Page</a>';
+                    } else {
+                        const errorData = await response.json();
+                        statusDiv.innerHTML = '❌ Login failed: ' + errorData.message;
+                    }
+                } catch (error) {
+                    statusDiv.innerHTML = '❌ Login error: ' + error.message;
+                }
+            } else {
+                try {
+                    const userData = JSON.parse(user);
+                    statusDiv.innerHTML = '✅ Authentication found!<br>User: ' + userData.email + '<br>Role: ' + userData.role;
+
+                    actionsDiv.innerHTML = '<a href="http://localhost:3000/menu/products" target="_blank" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 5px;">Open Menu/Products Page</a>';
+                } catch (e) {
+                    statusDiv.innerHTML = '❌ Invalid auth data found. Clearing...';
+                    localStorage.removeItem('auth-token');
+                    localStorage.removeItem('user');
+                    setTimeout(checkAndFixAuth, 100);
+                }
+            }
+        }
+
+        // Run immediately
+        checkAndFixAuth();
+    </script>
+</body>
+</html>

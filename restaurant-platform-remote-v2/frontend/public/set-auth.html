@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Set Auth Token</title>
+</head>
+<body>
+    <h1>Setting Authentication Token</h1>
+    <p>Setting auth token and user data in localStorage...</p>
+    <script>
+        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwNDlkNWQ3Yi0wYWJiLTQ2M2MtYWNkMS1hOTY3ZGEzYTg4Y2MiLCJlbWFpbCI6ImFkbWluQHRlc3QuY29tIiwicm9sZSI6InN1cGVyX2FkbWluIiwiY29tcGFueUlkIjoiNzJlZTgxYTEtZDc2Ni00MTliLTlhMmYtMjU4NWY2NTA3YWNhIiwiYnJhbmNoSWQiOiJmOTdjZWIzOC1jNzk3LTRkMWMtOWZmNC04OWQ5ZjhkYTUyMzUiLCJpYXQiOjE3NTgwNzYwNTgsImV4cCI6MTc1ODE2MjQ1OH0.4LjqaSK4CU4Nm35wkdsmTUd2SvEiBPxtkEw2EUwPRtU";
+        const user = {
+            "id": "049d5d7b-0abb-463c-acd1-a967da3a88cc",
+            "email": "admin@test.com",
+            "name": "Admin User",
+            "role": "super_admin",
+            "companyId": "72ee81a1-d766-419b-9a2f-2585f6507aca",
+            "branchId": "f97ceb38-c797-4d1c-9ff4-89d9f8da5235",
+            "company": {
+                "id": "72ee81a1-d766-419b-9a2f-2585f6507aca",
+                "name": "Test Restaurant Company",
+                "slug": "test-restaurant",
+                "logo": null,
+                "businessType": "restaurant",
+                "timezone": "America/New_York",
+                "defaultCurrency": "USD",
+                "status": "active",
+                "subscriptionPlan": "basic",
+                "subscriptionExpiresAt": null
+            },
+            "branch": {
+                "id": "f97ceb38-c797-4d1c-9ff4-89d9f8da5235",
+                "companyId": "82b4039a-f9f3-4648-b3e1-23397d83af61",
+                "name": "Company B Main Branch",
+                "phone": null,
+                "email": null,
+                "address": null,
+                "city": null,
+                "country": null,
+                "latitude": null,
+                "longitude": null,
+                "isDefault": false,
+                "isActive": true,
+                "allowsOnlineOrders": true,
+                "allowsDelivery": true,
+                "allowsPickup": true,
+                "timezone": "Asia/Amman"
+            }
+        };
+
+        localStorage.setItem('auth-token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        alert('Auth token and user data set! You can now navigate to /menu/products');
+        setTimeout(() => {
+            window.location.href = '/menu/products';
+        }, 1000);
+    </script>
+</body>
+</html>

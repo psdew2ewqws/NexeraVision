@@ -1,0 +1,894 @@
+const ThermalPrinter = require('node-thermal-printer').printer;
+const PrinterTypes = require('node-thermal-printer').types;
+const { jsPDF } = require('jspdf');
+const fs = require('fs/promises');
+const path = require('path');
+const os = require('os');
+
+class PhysicalPrinterService {
+  constructor() {
+    this.printers = new Map(); // Cache of initialized printers
+    this.isInitialized = false;
+    this.supportedTypes = ['thermal', 'regular', 'pdf', 'kitchen'];
+  }
+
+  async initialize() {
+    if (this.isInitialized) return;
+
+    console.log('🖨️ [PHYSICAL-PRINTER] Initializing Physical Printer Service...');
+
+    try {
+      // Test if we can create thermal printer instances
+      const testPrinter = new ThermalPrinter({
+        type: PrinterTypes.EPSON,
+        interface: '/dev/usb/lp0', // Dummy interface for testing
+        options: {
+          timeout: 5000
+        }
+      });
+
+      console.log('✅ [PHYSICAL-PRINTER] Node thermal printer library loaded successfully');
+      this.isInitialized = true;
+    } catch (error) {
+      console.warn('⚠️ [PHYSICAL-PRINTER] Thermal printer library initialization warning:', error.message);
+      this.isInitialized = true; // Continue without thermal printer support
+    }
+  }
+
+  /**
+   * Print a test page to a physical printer
+   * @param {Object} printerConfig - Printer configuration
+   * @param {Object} testData - Test page data
+   * @returns {Promise<Object>} Print result
+   */
+  async printTestPage(printerConfig, testData = {}) {
+    await this.initialize();
+
+    console.log(`🖨️ [PHYSICAL-PRINTER] Printing test page to: ${printerConfig.name}`);
+
+    const testContent = this.generateTestPageContent(printerConfig, testData);
+
+    try {
+      switch (printerConfig.type.toLowerCase()) {
+        case 'thermal':
+          return await this.printToThermalPrinter(printerConfig, testContent);
+        case 'kitchen':
+          return await this.printToKitchenPrinter(printerConfig, testContent);
+        case 'regular':
+        case 'laser':
+        case 'inkjet':
+          return await this.printToRegularPrinter(printerConfig, testContent);
+        case 'pdf':
+          return await this.printToPDF(printerConfig, testContent);
+        default:
+          // Try thermal printer as fallback for restaurant use
+          console.log(`🔄 [PHYSICAL-PRINTER] Unknown printer type '${printerConfig.type}', trying thermal printer`);
+          return await this.printToThermalPrinter(printerConfig, testContent);
+      }
+    } catch (error) {
+      console.error(`❌ [PHYSICAL-PRINTER] Print failed for ${printerConfig.name}:`, error);
+      return {
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        printerId: printerConfig.id || printerConfig.name
+      };
+    }
+  }
+
+  /**
+   * Print to thermal/receipt printer using ESC/POS commands
+   */
+  async printToThermalPrinter(printerConfig, content) {
+    try {
+      console.log(`🌡️ [THERMAL] Setting up thermal printer: ${printerConfig.name}`);
+
+      const printerType = this.detectThermalPrinterType(printerConfig);
+      let printerInterface = this.determinePrinterInterface(printerConfig);
+
+      console.log(`🔧 [THERMAL] Printer type: ${printerType}, Interface: ${printerInterface}`);
+
+      const printer = new ThermalPrinter({
+        type: printerType,
+        interface: printerInterface,
+        options: {
+          timeout: 10000,
+          retryTimes: 2
+        }
+      });
+
+      // Test printer connection
+      const isConnected = await this.testPrinterConnection(printer);
+      if (!isConnected) {
+        throw new Error('Unable to connect to thermal printer');
+      }
+
+      // Set up thermal printer formatting
+      printer.alignCenter();
+      printer.setTypeFontA();
+      printer.bold(true);
+      printer.println('================================');
+      printer.println('    RESTAURANT PLATFORM');
+      printer.println('        TEST PRINT');
+      printer.println('================================');
+      printer.bold(false);
+      printer.newLine();
+
+      // Printer information
+      printer.alignLeft();
+      printer.println(`Printer: ${printerConfig.name}`);
+      printer.println(`Type: ${printerConfig.type.toUpperCase()}`);
+      printer.println(`Connection: ${printerConfig.connection || 'USB'}`);
+      printer.println(`Time: ${new Date().toLocaleString()}`);
+
+      if (content.branchName) {
+        printer.println(`Branch: ${content.branchName}`);
+      }
+      if (content.companyName) {
+        printer.println(`Company: ${content.companyName}`);
+      }
+
+      printer.println('================================');
+      printer.newLine();
+
+      // Test content
+      printer.println('This is a test print to verify');
+      printer.println('printer connectivity and');
+      printer.println('functionality.');
+      printer.newLine();
+
+      // Character test
+      printer.println('Print quality check:');
+      printer.println('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+      printer.println('0123456789');
+      printer.println('Special chars: !@#$%^&*()');
+      printer.newLine();
+
+      // Status
+      printer.alignCenter();
+      printer.bold(true);
+      printer.println('================================');
+      printer.println('Status: SUCCESS');
+      printer.println('================================');
+      printer.bold(false);
+
+      // Cut paper if supported
+      if (printerConfig.capabilities?.includes('cut') || printerConfig.capabilities?.includes('paper_cut')) {
+        printer.cut();
+      } else {
+        printer.newLine();
+        printer.newLine();
+        printer.newLine();
+      }
+
+      // Execute print job
+      await printer.execute();
+
+      console.log(`✅ [THERMAL] Successfully printed test page to ${printerConfig.name}`);
+
+      return {
+        success: true,
+        message: 'Thermal printer test successful',
+        timestamp: new Date().toISOString(),
+        printerId: printerConfig.id || printerConfig.name,
+        printerType: 'thermal',
+        interface: printerInterface
+      };
+
+    } catch (error) {
+      console.error(`❌ [THERMAL] Thermal print failed:`, error);
+
+      // Try alternative methods for thermal printing
+      if (error.message && (error.message.includes('ENOENT') || error.message.includes('permission'))) {
+        return await this.printToThermalPrinterFallback(printerConfig, content);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Fallback thermal printing method using raw ESC/POS commands
+   */
+  async printToThermalPrinterFallback(printerConfig, content) {
+    console.log(`🔄 [THERMAL-FALLBACK] Attempting fallback thermal print method`);
+
+    try {
+      // Generate raw ESC/POS commands
+      const escPosCommands = this.generateESCPOSCommands(printerConfig, content);
+
+      // Try to send to system printer
+      if (printerConfig.systemPrinter) {
+        return await this.sendRawToSystemPrinter(printerConfig, escPosCommands);
+      }
+
+      // For network printers, try socket connection
+      if (printerConfig.connection === 'network' && printerConfig.ip) {
+        return await this.sendRawToNetworkPrinter(printerConfig, escPosCommands);
+      }
+
+      throw new Error('No fallback method available for this printer configuration');
+
+    } catch (fallbackError) {
+      console.error(`❌ [THERMAL-FALLBACK] Fallback method failed:`, fallbackError);
+      throw fallbackError;
+    }
+  }
+
+  /**
+   * Print to regular system printer (laser/inkjet)
+   */
+  async printToRegularPrinter(printerConfig, content) {
+    console.log(`🖨️ [REGULAR] Setting up regular printer: ${printerConfig.name}`);
+
+    try {
+      // Create a formatted text document
+      const textContent = this.formatContentForRegularPrinter(content);
+
+      // Try system printer first
+      if (printerConfig.systemPrinter) {
+        return await this.sendTextToSystemPrinter(printerConfig, textContent);
+      }
+
+      // Generate PDF and print
+      const pdfPath = await this.generatePDFForPrinting(content);
+      return await this.sendPDFToSystemPrinter(printerConfig, pdfPath);
+
+    } catch (error) {
+      console.error(`❌ [REGULAR] Regular printer failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Print to kitchen printer (usually thermal with special formatting)
+   */
+  async printToKitchenPrinter(printerConfig, content) {
+    console.log(`🍳 [KITCHEN] Setting up kitchen printer: ${printerConfig.name}`);
+
+    // Kitchen printers are usually thermal printers with specific formatting
+    const kitchenContent = {
+      ...content,
+      isKitchen: true,
+      title: 'KITCHEN TICKET',
+      emphasis: true
+    };
+
+    return await this.printToThermalPrinter(printerConfig, kitchenContent);
+  }
+
+  /**
+   * Generate PDF file for printing
+   */
+  async printToPDF(printerConfig, content) {
+    console.log(`📄 [PDF] Generating PDF for: ${printerConfig.name}`);
+
+    try {
+      const pdfPath = await this.generatePDFForPrinting(content);
+
+      console.log(`✅ [PDF] PDF generated successfully: ${pdfPath}`);
+
+      return {
+        success: true,
+        message: 'PDF generated successfully',
+        timestamp: new Date().toISOString(),
+        printerId: printerConfig.id || printerConfig.name,
+        filePath: pdfPath,
+        printerType: 'pdf'
+      };
+
+    } catch (error) {
+      console.error(`❌ [PDF] PDF generation failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test printer connectivity
+   */
+  async testPrinterConnection(printer) {
+    try {
+      // For thermal printers, try to initialize connection
+      console.log('🔍 [CONNECTION-TEST] Testing printer connection...');
+
+      // This is a basic connectivity test
+      // In a real implementation, you might ping the printer or send a status command
+      return true;
+
+    } catch (error) {
+      console.warn('⚠️ [CONNECTION-TEST] Connection test failed:', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Generate test page content
+   */
+  generateTestPageContent(printerConfig, testData) {
+    return {
+      title: 'RESTAURANT PLATFORM TEST',
+      printerName: printerConfig.name,
+      printerType: printerConfig.type,
+      connection: printerConfig.connection || 'Unknown',
+      timestamp: new Date().toLocaleString(),
+      branchName: testData.branchName || 'Test Branch',
+      companyName: testData.companyName || 'Restaurant Platform',
+      testPattern: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      numbers: '0123456789',
+      specialChars: '!@#$%^&*()',
+      status: 'SUCCESS'
+    };
+  }
+
+  /**
+   * Detect thermal printer type based on name/manufacturer
+   */
+  detectThermalPrinterType(printerConfig) {
+    const name = (printerConfig.name || '').toLowerCase();
+    const manufacturer = (printerConfig.manufacturer || '').toLowerCase();
+
+    if (name.includes('epson') || manufacturer.includes('epson')) {
+      return PrinterTypes.EPSON;
+    } else if (name.includes('star') || manufacturer.includes('star')) {
+      return PrinterTypes.STAR;
+    } else if (name.includes('citizen') || manufacturer.includes('citizen')) {
+      return PrinterTypes.CITIZEN;
+    } else {
+      // Default to EPSON ESC/POS which is most compatible
+      return PrinterTypes.EPSON;
+    }
+  }
+
+  /**
+   * Determine printer interface based on connection type
+   */
+  determinePrinterInterface(printerConfig) {
+    switch (printerConfig.connection?.toLowerCase()) {
+      case 'usb':
+        return this.findUSBInterface(printerConfig);
+      case 'serial':
+        return this.findSerialInterface(printerConfig);
+      case 'network':
+        if (printerConfig.ip && printerConfig.port) {
+          return `tcp://${printerConfig.ip}:${printerConfig.port}`;
+        }
+        return 'tcp://192.168.1.100:9100'; // Default network interface
+      case 'bluetooth':
+        return this.findBluetoothInterface(printerConfig);
+      default:
+        // Try USB first, then serial
+        return this.findUSBInterface(printerConfig) || '/dev/usb/lp0';
+    }
+  }
+
+  /**
+   * Find USB interface for printer
+   */
+  findUSBInterface(printerConfig) {
+    // On Linux: /dev/usb/lp0, /dev/usb/lp1, etc.
+    // On Windows: USB001, USB002, etc.
+    // On macOS: /dev/cu.usbserial-*, /dev/tty.usbserial-*
+
+    const platform = os.platform();
+
+    if (platform === 'linux') {
+      return '/dev/usb/lp0'; // Most common USB printer interface on Linux
+    } else if (platform === 'win32') {
+      return 'USB001'; // Windows USB port
+    } else if (platform === 'darwin') {
+      return '/dev/cu.usbserial-1410'; // macOS USB serial
+    }
+
+    return '/dev/usb/lp0'; // Default fallback
+  }
+
+  /**
+   * Find serial interface for printer
+   */
+  findSerialInterface(printerConfig) {
+    const platform = os.platform();
+
+    if (platform === 'linux') {
+      return '/dev/ttyUSB0'; // Common serial interface on Linux
+    } else if (platform === 'win32') {
+      return 'COM1'; // Windows COM port
+    } else if (platform === 'darwin') {
+      return '/dev/tty.usbserial-1410'; // macOS serial
+    }
+
+    return '/dev/ttyUSB0'; // Default fallback
+  }
+
+  /**
+   * Find Bluetooth interface for printer
+   */
+  findBluetoothInterface(printerConfig) {
+    // Bluetooth interfaces are more complex and require pairing
+    // This is a simplified implementation
+    return '/dev/rfcomm0'; // Default Bluetooth serial interface
+  }
+
+  /**
+   * Generate raw ESC/POS commands
+   */
+  generateESCPOSCommands(printerConfig, content) {
+    const ESC = '\x1b';
+    const GS = '\x1d';
+
+    let commands = '';
+
+    // Initialize printer
+    commands += ESC + '@'; // Initialize
+
+    // Center alignment and bold
+    commands += ESC + 'a' + String.fromCharCode(1); // Center align
+    commands += ESC + 'E' + String.fromCharCode(1); // Bold on
+
+    // Header
+    commands += '================================\n';
+    commands += '    RESTAURANT PLATFORM\n';
+    commands += '        TEST PRINT\n';
+    commands += '================================\n';
+
+    // Bold off, left align
+    commands += ESC + 'E' + String.fromCharCode(0); // Bold off
+    commands += ESC + 'a' + String.fromCharCode(0); // Left align
+    commands += '\n';
+
+    // Printer info
+    commands += `Printer: ${printerConfig.name}\n`;
+    commands += `Type: ${printerConfig.type.toUpperCase()}\n`;
+    commands += `Time: ${new Date().toLocaleString()}\n`;
+    commands += '================================\n';
+    commands += '\n';
+
+    // Test content
+    commands += 'This is a test print to verify\n';
+    commands += 'printer connectivity and\n';
+    commands += 'functionality.\n';
+    commands += '\n';
+    commands += 'Print quality check:\n';
+    commands += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ\n';
+    commands += '0123456789\n';
+    commands += 'Special chars: !@#$%^&*()\n';
+    commands += '\n';
+
+    // Center align for status
+    commands += ESC + 'a' + String.fromCharCode(1); // Center align
+    commands += ESC + 'E' + String.fromCharCode(1); // Bold on
+    commands += '================================\n';
+    commands += 'Status: SUCCESS\n';
+    commands += '================================\n';
+    commands += ESC + 'E' + String.fromCharCode(0); // Bold off
+
+    // Cut paper if supported
+    if (printerConfig.capabilities?.includes('cut')) {
+      commands += GS + 'V' + String.fromCharCode(65) + String.fromCharCode(0); // Partial cut
+    } else {
+      commands += '\n\n\n'; // Extra line feeds
+    }
+
+    return commands;
+  }
+
+  /**
+   * Send raw commands to system printer
+   */
+  async sendRawToSystemPrinter(printerConfig, rawData) {
+    console.log(`📡 [RAW-SYSTEM] Sending raw data to system printer: ${printerConfig.name}`);
+
+    try {
+      // Create temporary file with raw printer data
+      const tmpDir = os.tmpdir();
+      const tmpFile = path.join(tmpDir, `print-job-${Date.now()}.prn`);
+
+      await fs.writeFile(tmpFile, rawData, 'binary');
+
+      // Send to printer using system commands
+      const { exec } = require('child_process');
+      const util = require('util');
+      const execAsync = util.promisify(exec);
+
+      let printCommand = '';
+      const platform = os.platform();
+
+      if (platform === 'win32') {
+        // Windows: copy file to printer
+        printCommand = `copy /b "${tmpFile}" "${printerConfig.name}"`;
+      } else if (platform === 'linux') {
+        // Linux: use lp command
+        printCommand = `lp -d "${printerConfig.name}" "${tmpFile}"`;
+      } else if (platform === 'darwin') {
+        // macOS: use lp command
+        printCommand = `lp -d "${printerConfig.name}" "${tmpFile}"`;
+      }
+
+      if (printCommand) {
+        await execAsync(printCommand);
+
+        // Clean up temporary file
+        await fs.unlink(tmpFile).catch(() => {}); // Ignore cleanup errors
+
+        console.log(`✅ [RAW-SYSTEM] Raw print successful`);
+
+        return {
+          success: true,
+          message: 'Raw system print successful',
+          timestamp: new Date().toISOString(),
+          printerId: printerConfig.id || printerConfig.name,
+          method: 'raw_system'
+        };
+      } else {
+        throw new Error('Unsupported platform for raw system printing');
+      }
+
+    } catch (error) {
+      console.error(`❌ [RAW-SYSTEM] Raw system print failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send raw data to network printer via socket
+   */
+  async sendRawToNetworkPrinter(printerConfig, rawData) {
+    console.log(`🌐 [RAW-NETWORK] Sending raw data to network printer: ${printerConfig.ip}:${printerConfig.port}`);
+
+    return new Promise((resolve, reject) => {
+      const net = require('net');
+      const socket = new net.Socket();
+
+      const timeout = setTimeout(() => {
+        socket.destroy();
+        reject(new Error('Network printer connection timeout'));
+      }, 10000);
+
+      socket.connect(printerConfig.port || 9100, printerConfig.ip, () => {
+        console.log(`🔗 [RAW-NETWORK] Connected to ${printerConfig.ip}:${printerConfig.port}`);
+        clearTimeout(timeout);
+
+        socket.write(rawData, () => {
+          console.log(`📤 [RAW-NETWORK] Data sent to printer`);
+          socket.end();
+        });
+      });
+
+      socket.on('close', () => {
+        console.log(`✅ [RAW-NETWORK] Network print completed`);
+        resolve({
+          success: true,
+          message: 'Network raw print successful',
+          timestamp: new Date().toISOString(),
+          printerId: printerConfig.id || printerConfig.name,
+          method: 'raw_network'
+        });
+      });
+
+      socket.on('error', (error) => {
+        clearTimeout(timeout);
+        console.error(`❌ [RAW-NETWORK] Network print error:`, error);
+        reject(error);
+      });
+    });
+  }
+
+  /**
+   * Format content for regular printer
+   */
+  formatContentForRegularPrinter(content) {
+    let text = '';
+
+    text += '================================\n';
+    text += '    RESTAURANT PLATFORM\n';
+    text += '        TEST PRINT\n';
+    text += '================================\n\n';
+
+    text += `Printer: ${content.printerName}\n`;
+    text += `Type: ${content.printerType}\n`;
+    text += `Connection: ${content.connection}\n`;
+    text += `Time: ${content.timestamp}\n`;
+    text += `Branch: ${content.branchName}\n`;
+    text += `Company: ${content.companyName}\n`;
+    text += '================================\n\n';
+
+    text += 'This is a test print to verify\n';
+    text += 'printer connectivity and functionality.\n\n';
+
+    text += 'Print quality check:\n';
+    text += `${content.testPattern}\n`;
+    text += `${content.numbers}\n`;
+    text += `Special chars: ${content.specialChars}\n\n`;
+
+    text += '================================\n';
+    text += `Status: ${content.status}\n`;
+    text += '================================\n';
+
+    return text;
+  }
+
+  /**
+   * Send text to system printer
+   */
+  async sendTextToSystemPrinter(printerConfig, textContent) {
+    console.log(`📝 [TEXT-SYSTEM] Sending text to system printer: ${printerConfig.name}`);
+
+    try {
+      const tmpDir = os.tmpdir();
+      const tmpFile = path.join(tmpDir, `print-text-${Date.now()}.txt`);
+
+      await fs.writeFile(tmpFile, textContent, 'utf8');
+
+      const { exec } = require('child_process');
+      const util = require('util');
+      const execAsync = util.promisify(exec);
+
+      let printCommand = '';
+      const platform = os.platform();
+
+      if (platform === 'win32') {
+        printCommand = `notepad /p "${tmpFile}"`;
+      } else if (platform === 'linux') {
+        printCommand = `lp -d "${printerConfig.name}" "${tmpFile}"`;
+      } else if (platform === 'darwin') {
+        printCommand = `lp -d "${printerConfig.name}" "${tmpFile}"`;
+      }
+
+      if (printCommand) {
+        await execAsync(printCommand);
+        await fs.unlink(tmpFile).catch(() => {});
+
+        console.log(`✅ [TEXT-SYSTEM] Text print successful`);
+
+        return {
+          success: true,
+          message: 'Text system print successful',
+          timestamp: new Date().toISOString(),
+          printerId: printerConfig.id || printerConfig.name,
+          method: 'text_system'
+        };
+      } else {
+        throw new Error('Unsupported platform for text system printing');
+      }
+
+    } catch (error) {
+      console.error(`❌ [TEXT-SYSTEM] Text system print failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate PDF for printing
+   */
+  async generatePDFForPrinting(content) {
+    console.log(`📊 [PDF-GEN] Generating PDF test document`);
+
+    try {
+      const doc = new jsPDF();
+
+      // Set font
+      doc.setFont('courier');
+
+      // Title
+      doc.setFontSize(16);
+      doc.text('RESTAURANT PLATFORM', 105, 20, { align: 'center' });
+      doc.text('TEST PRINT', 105, 30, { align: 'center' });
+
+      // Line
+      doc.setDrawColor(0);
+      doc.line(20, 35, 190, 35);
+
+      // Content
+      doc.setFontSize(12);
+      let y = 50;
+
+      doc.text(`Printer: ${content.printerName}`, 20, y);
+      y += 10;
+      doc.text(`Type: ${content.printerType}`, 20, y);
+      y += 10;
+      doc.text(`Connection: ${content.connection}`, 20, y);
+      y += 10;
+      doc.text(`Time: ${content.timestamp}`, 20, y);
+      y += 10;
+      doc.text(`Branch: ${content.branchName}`, 20, y);
+      y += 10;
+      doc.text(`Company: ${content.companyName}`, 20, y);
+      y += 20;
+
+      doc.text('This is a test print to verify printer connectivity', 20, y);
+      y += 10;
+      doc.text('and functionality.', 20, y);
+      y += 20;
+
+      doc.text('Print quality check:', 20, y);
+      y += 10;
+      doc.text(content.testPattern, 20, y);
+      y += 10;
+      doc.text(content.numbers, 20, y);
+      y += 10;
+      doc.text(`Special chars: ${content.specialChars}`, 20, y);
+      y += 20;
+
+      // Status
+      doc.setFontSize(14);
+      doc.text(`Status: ${content.status}`, 105, y, { align: 'center' });
+
+      // Save PDF
+      const tmpDir = os.tmpdir();
+      const pdfPath = path.join(tmpDir, `test-print-${Date.now()}.pdf`);
+
+      const pdfData = doc.output('arraybuffer');
+      await fs.writeFile(pdfPath, Buffer.from(pdfData));
+
+      console.log(`✅ [PDF-GEN] PDF generated: ${pdfPath}`);
+      return pdfPath;
+
+    } catch (error) {
+      console.error(`❌ [PDF-GEN] PDF generation failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send PDF to system printer
+   */
+  async sendPDFToSystemPrinter(printerConfig, pdfPath) {
+    console.log(`📄 [PDF-SYSTEM] Sending PDF to system printer: ${printerConfig.name}`);
+
+    try {
+      const { exec } = require('child_process');
+      const util = require('util');
+      const execAsync = util.promisify(exec);
+
+      let printCommand = '';
+      const platform = os.platform();
+
+      if (platform === 'win32') {
+        // Windows: Use start command to open with default PDF viewer for printing
+        printCommand = `start "" /wait "${pdfPath}"`;
+      } else if (platform === 'linux') {
+        // Linux: Use lp command with PDF
+        printCommand = `lp -d "${printerConfig.name}" "${pdfPath}"`;
+      } else if (platform === 'darwin') {
+        // macOS: Use lp command
+        printCommand = `lp -d "${printerConfig.name}" "${pdfPath}"`;
+      }
+
+      if (printCommand) {
+        await execAsync(printCommand);
+
+        // Clean up PDF file after short delay
+        setTimeout(() => {
+          fs.unlink(pdfPath).catch(() => {});
+        }, 5000);
+
+        console.log(`✅ [PDF-SYSTEM] PDF print successful`);
+
+        return {
+          success: true,
+          message: 'PDF system print successful',
+          timestamp: new Date().toISOString(),
+          printerId: printerConfig.id || printerConfig.name,
+          method: 'pdf_system',
+          filePath: pdfPath
+        };
+      } else {
+        throw new Error('Unsupported platform for PDF system printing');
+      }
+
+    } catch (error) {
+      console.error(`❌ [PDF-SYSTEM] PDF system print failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get printer status and capabilities
+   */
+  async getPrinterStatus(printerConfig) {
+    await this.initialize();
+
+    try {
+      // Basic status check - can be enhanced with actual printer communication
+      return {
+        printerId: printerConfig.id || printerConfig.name,
+        name: printerConfig.name,
+        status: 'ready',
+        paperLevel: 85, // Mock data
+        temperature: 32, // Mock data
+        capabilities: printerConfig.capabilities || ['text'],
+        lastChecked: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        printerId: printerConfig.id || printerConfig.name,
+        name: printerConfig.name,
+        status: 'error',
+        error: error.message,
+        lastChecked: new Date().toISOString()
+      };
+    }
+  }
+
+  /**
+   * Process a full print job (orders, receipts, etc.)
+   */
+  async processPrintJob(printerConfig, jobData) {
+    await this.initialize();
+
+    console.log(`📋 [PRINT-JOB] Processing ${jobData.type} job for: ${printerConfig.name}`);
+
+    try {
+      switch (jobData.type) {
+        case 'test':
+          return await this.printTestPage(printerConfig, jobData.testData);
+        case 'receipt':
+          return await this.printReceipt(printerConfig, jobData);
+        case 'kitchen_order':
+          return await this.printKitchenOrder(printerConfig, jobData);
+        case 'label':
+          return await this.printLabel(printerConfig, jobData);
+        default:
+          throw new Error(`Unsupported job type: ${jobData.type}`);
+      }
+    } catch (error) {
+      console.error(`❌ [PRINT-JOB] Print job failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Print receipt
+   */
+  async printReceipt(printerConfig, jobData) {
+    // Implementation similar to printTestPage but with receipt formatting
+    const receiptContent = this.generateReceiptContent(jobData);
+    return await this.printToThermalPrinter(printerConfig, receiptContent);
+  }
+
+  /**
+   * Print kitchen order
+   */
+  async printKitchenOrder(printerConfig, jobData) {
+    // Implementation for kitchen order formatting
+    const kitchenContent = this.generateKitchenOrderContent(jobData);
+    return await this.printToKitchenPrinter(printerConfig, kitchenContent);
+  }
+
+  /**
+   * Print label
+   */
+  async printLabel(printerConfig, jobData) {
+    // Implementation for label printing
+    const labelContent = this.generateLabelContent(jobData);
+    return await this.printToThermalPrinter(printerConfig, labelContent);
+  }
+
+  generateReceiptContent(jobData) {
+    // Generate receipt content from job data
+    return {
+      title: 'CUSTOMER RECEIPT',
+      ...jobData,
+      isReceipt: true
+    };
+  }
+
+  generateKitchenOrderContent(jobData) {
+    // Generate kitchen order content from job data
+    return {
+      title: 'KITCHEN ORDER',
+      ...jobData,
+      isKitchen: true
+    };
+  }
+
+  generateLabelContent(jobData) {
+    // Generate label content from job data
+    return {
+      title: 'PRODUCT LABEL',
+      ...jobData,
+      isLabel: true
+    };
+  }
+}
+
+module.exports = PhysicalPrinterService;

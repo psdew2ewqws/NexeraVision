@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2022",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@/*": ["src/*"],
+      "@/common/*": ["src/common/*"],
+      "@/modules/*": ["src/modules/*"],
+      "@/config/*": ["src/config/*"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": [
+    "node_modules", 
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/tests/**/*",
+    "src/modules/delivery/integrations/careem.service.ts",
+    "src/modules/delivery/integrations/dhub.service.ts", 
+    "src/modules/delivery/integrations/talabat.service.ts",
+    "src/modules/delivery/integrations/jahez.service.ts",
+    "src/modules/delivery/integrations/deliveroo.service.ts",
+    "src/modules/delivery/integrations/jahez-adapter.service.ts",
+    "src/modules/delivery/integrations/deliveroo-adapter.service.ts",
+    "src/modules/delivery/integrations/delivery-integration.service.ts",
+    "src/modules/delivery/monitoring/delivery-monitoring.service.ts",
+    "src/modules/promotions/dto/create-promotion-campaign.dto.ts",
+    "src/modules/promotions/promotion-campaigns.controller.ts",
+    "src/modules/promotions/promotion-campaigns.service.ts",
+    "src/modules/promotions/services/menu-integration.service.ts",
+    "src/domains/**/*",
+    "src/infrastructure/**/*"
+  ]
+}

@@ -1,0 +1,475 @@
+// ============================================================================
+// INTEGRATION MANAGEMENT PLATFORM - SCHEMA EXTENSIONS
+// Based on Picolinate analysis and Ishbek-style functionality
+// ============================================================================
+
+// POS System Integration Models
+model POSSystem {
+  id                    String                @id @default(uuid())
+  name                  String
+  displayName           Json                  // Multi-language support
+  version               String?
+  provider              String                // "square", "toast", "clover", "lightspeed", etc.
+  apiVersion            String?               @map("api_version")
+  capabilities          Json                  @default("{}") // Supported features
+  connectionType        POSConnectionType     @map("connection_type")
+  webhookSupport        Boolean               @default(false) @map("webhook_support")
+  realTimeSync          Boolean               @default(false) @map("real_time_sync")
+  authMethod            POSAuthMethod         @map("auth_method")
+  isActive              Boolean               @default(true) @map("is_active")
+  documentation         Json?                 // Links to API docs, guides
+  features              String[]              @default([])
+  supportLevel          POSSupportLevel       @default(basic) @map("support_level")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  integrations          POSIntegration[]
+  connectionConfigs     POSConnectionConfig[]
+
+  @@index([provider, isActive])
+  @@index([capabilities])
+  @@map("pos_systems")
+}
+
+model POSIntegration {
+  id                    String              @id @default(uuid())
+  companyId             String              @map("company_id")
+  branchId              String?             @map("branch_id")
+  posSystemId           String              @map("pos_system_id")
+  configurationId       String              @map("configuration_id")
+  integrationName       String              @map("integration_name")
+  status                IntegrationStatus   @default(inactive)
+  lastSyncAt            DateTime?           @map("last_sync_at")
+  nextSyncAt            DateTime?           @map("next_sync_at")
+  syncInterval          Int                 @default(300) @map("sync_interval") // seconds
+  errorCount            Int                 @default(0) @map("error_count")
+  lastError             String?             @map("last_error")
+  metadata              Json                @default("{}")
+  settings              Json                @default("{}")
+  isAutoSync            Boolean             @default(true) @map("is_auto_sync")
+  priority              Int                 @default(5)
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  createdBy             String?             @map("created_by")
+
+  // Relations
+  posSystem             POSSystem           @relation(fields: [posSystemId], references: [id])
+  configuration         POSConnectionConfig @relation(fields: [configurationId], references: [id])
+  syncLogs              POSSyncLog[]
+  menuMappings          POSMenuMapping[]
+
+  @@unique([companyId, branchId, posSystemId])
+  @@index([companyId, status])
+  @@index([nextSyncAt])
+  @@map("pos_integrations")
+}
+
+model POSConnectionConfig {
+  id                    String           @id @default(uuid())
+  posSystemId           String           @map("pos_system_id")
+  name                  String
+  description           String?
+  authCredentials       Json             @default("{}") // Encrypted credentials
+  endpointConfig        Json             @default("{}") // API endpoints
+  connectionSettings    Json             @default("{}") // Timeouts, retries
+  testCredentials       Json?            @map("test_credentials") // Test environment
+  isDefault             Boolean          @default(false) @map("is_default")
+  isActive              Boolean          @default(true) @map("is_active")
+  lastTested            DateTime?        @map("last_tested")
+  testStatus            TestStatus?      @map("test_status")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  posSystem             POSSystem        @relation(fields: [posSystemId], references: [id], onDelete: Cascade)
+  integrations          POSIntegration[]
+
+  @@index([posSystemId, isActive])
+  @@map("pos_connection_configs")
+}
+
+model POSSyncLog {
+  id                    String           @id @default(uuid())
+  integrationId         String           @map("integration_id")
+  syncType              SyncType         @map("sync_type")
+  direction             SyncDirection
+  status                SyncStatus
+  startedAt             DateTime         @default(now()) @map("started_at")
+  completedAt           DateTime?        @map("completed_at")
+  recordsProcessed      Int              @default(0) @map("records_processed")
+  recordsSucceeded      Int              @default(0) @map("records_succeeded")
+  recordsFailed         Int              @default(0) @map("records_failed")
+  errorMessage          String?          @map("error_message")
+  errorDetails          Json?            @map("error_details")
+  requestPayload        Json?            @map("request_payload")
+  responsePayload       Json?            @map("response_payload")
+  syncDurationMs        Int?             @map("sync_duration_ms")
+
+  // Relations
+  integration           POSIntegration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId, startedAt])
+  @@index([status, startedAt])
+  @@map("pos_sync_logs")
+}
+
+model POSMenuMapping {
+  id                    String           @id @default(uuid())
+  integrationId         String           @map("integration_id")
+  localProductId        String           @map("local_product_id")
+  posProductId          String           @map("pos_product_id")
+  mapping               Json             @default("{}") // Field mappings
+  syncStatus            MappingStatus    @default(pending) @map("sync_status")
+  lastSyncAt            DateTime?        @map("last_sync_at")
+  errorMessage          String?          @map("error_message")
+  isActive              Boolean          @default(true) @map("is_active")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  integration           POSIntegration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, localProductId])
+  @@index([posProductId])
+  @@map("pos_menu_mappings")
+}
+
+// Enhanced Delivery Provider Models
+model DeliveryQuote {
+  id                    String           @id @default(uuid())
+  companyId             String           @map("company_id")
+  branchId              String           @map("branch_id")
+  providerType          String           @map("provider_type")
+  quoteReference        String           @unique @map("quote_reference")
+  customerLat           Decimal          @map("customer_lat") @db.Decimal(10,8)
+  customerLng           Decimal          @map("customer_lng") @db.Decimal(11,8)
+  distance              Decimal          @db.Decimal(8,2)
+  baseFee               Decimal          @map("base_fee") @db.Decimal(8,2)
+  distanceFee           Decimal          @map("distance_fee") @db.Decimal(8,2)
+  timeSurcharge         Decimal          @default(0) @map("time_surcharge") @db.Decimal(8,2)
+  peakHourSurcharge     Decimal          @default(0) @map("peak_hour_surcharge") @db.Decimal(8,2)
+  weatherSurcharge      Decimal          @default(0) @map("weather_surcharge") @db.Decimal(8,2)
+  totalFee              Decimal          @map("total_fee") @db.Decimal(8,2)
+  estimatedTime         Int              @map("estimated_time") // minutes
+  priorityScore         Decimal          @map("priority_score") @db.Decimal(5,2)
+  availabilityScore     Decimal          @map("availability_score") @db.Decimal(5,2)
+  performanceScore      Decimal          @map("performance_score") @db.Decimal(5,2)
+  totalScore            Decimal          @map("total_score") @db.Decimal(6,2)
+  isSelected            Boolean          @default(false) @map("is_selected")
+  quoteValidUntil       DateTime         @map("quote_valid_until")
+  providerResponse      Json?            @map("provider_response")
+  createdAt             DateTime         @default(now()) @map("created_at")
+
+  @@index([companyId, totalScore])
+  @@index([quoteValidUntil])
+  @@map("delivery_quotes")
+}
+
+model VendorPerformanceMetrics {
+  id                    String           @id @default(uuid())
+  companyId             String           @map("company_id")
+  branchId              String?          @map("branch_id")
+  providerType          String           @map("provider_type")
+  date                  DateTime         @db.Date
+  totalOrders           Int              @default(0) @map("total_orders")
+  completedOrders       Int              @default(0) @map("completed_orders")
+  cancelledOrders       Int              @default(0) @map("cancelled_orders")
+  onTimeDeliveries      Int              @default(0) @map("on_time_deliveries")
+  lateDeliveries        Int              @default(0) @map("late_deliveries")
+  avgDeliveryTime       Int              @default(0) @map("avg_delivery_time") // minutes
+  avgResponseTime       Int              @default(0) @map("avg_response_time") // seconds
+  customerRating        Decimal          @default(0) @db.Decimal(3,2)
+  customerComplaints    Int              @default(0) @map("customer_complaints")
+  deliverySuccess       Decimal          @default(0) @map("delivery_success") @db.Decimal(5,2)
+  totalRevenue          Decimal          @default(0) @map("total_revenue") @db.Decimal(10,2)
+  avgDeliveryFee        Decimal          @default(0) @map("avg_delivery_fee") @db.Decimal(8,2)
+  utilizationRate       Decimal          @default(0) @map("utilization_rate") @db.Decimal(5,2)
+  acceptanceRate        Decimal          @default(0) @map("acceptance_rate") @db.Decimal(5,2)
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  @@unique([companyId, branchId, providerType, date])
+  @@index([companyId, providerType, date])
+  @@map("vendor_performance_metrics")
+}
+
+model DeliveryTracking {
+  id                        String           @id @default(uuid())
+  orderId                   String           @map("order_id")
+  companyId                 String           @map("company_id")
+  branchId                  String           @map("branch_id")
+  providerType              String           @map("provider_type")
+  trackingNumber            String?          @map("tracking_number")
+  driverName                String?          @map("driver_name")
+  driverPhone               String?          @map("driver_phone")
+  driverLocation            Json?            @map("driver_location") // {lat, lng, timestamp}
+  currentStatus             String           @map("current_status")
+  statusHistory             Json             @default("[]") @map("status_history")
+  estimatedArrival          DateTime?        @map("estimated_arrival")
+  actualDeliveryTime        DateTime?        @map("actual_delivery_time")
+  deliveryProof             Json?            @map("delivery_proof") // photos, signatures
+  customerFeedback          Json?            @map("customer_feedback")
+  deliveryNotes             String?          @map("delivery_notes")
+  lastUpdateFromProvider    DateTime?        @map("last_update_from_provider")
+  webhookCallbacks          Json             @default("[]") @map("webhook_callbacks")
+  createdAt                 DateTime         @default(now()) @map("created_at")
+  updatedAt                 DateTime         @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@index([companyId, currentStatus])
+  @@map("delivery_tracking")
+}
+
+model ProviderRateCard {
+  id                  String           @id @default(uuid())
+  companyId           String           @map("company_id")
+  providerType        String           @map("provider_type")
+  effectiveFrom       DateTime         @map("effective_from")
+  effectiveTo         DateTime?        @map("effective_to")
+  baseFee             Decimal          @map("base_fee") @db.Decimal(8,2)
+  feePerKm            Decimal          @map("fee_per_km") @db.Decimal(8,2)
+  minimumFee          Decimal          @map("minimum_fee") @db.Decimal(8,2)
+  distanceBrackets    Json             @default("[]") @map("distance_brackets")
+  peakHours           Json             @default("[]") @map("peak_hours")
+  peakHourMultiplier  Decimal          @default(1) @map("peak_hour_multiplier") @db.Decimal(3,2)
+  weatherSurcharge    Decimal          @default(0) @map("weather_surcharge") @db.Decimal(8,2)
+  holidaySurcharge    Decimal          @default(0) @map("holiday_surcharge") @db.Decimal(8,2)
+  urgentDeliveryFee   Decimal          @default(0) @map("urgent_delivery_fee") @db.Decimal(8,2)
+  volumeDiscounts     Json             @default("[]") @map("volume_discounts")
+  isActive            Boolean          @default(true) @map("is_active")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  @@index([companyId, providerType, effectiveFrom])
+  @@map("provider_rate_cards")
+}
+
+// Integration Analytics & Monitoring
+model IntegrationAnalytics {
+  id                    String           @id @default(uuid())
+  companyId             String           @map("company_id")
+  integrationType       String           @map("integration_type") // pos, delivery, payment
+  integrationId         String           @map("integration_id")
+  metricDate            DateTime         @db.Date @map("metric_date")
+  apiCallsTotal         Int              @default(0) @map("api_calls_total")
+  apiCallsSuccessful    Int              @default(0) @map("api_calls_successful")
+  apiCallsFailed        Int              @default(0) @map("api_calls_failed")
+  avgResponseTime       Decimal          @default(0) @map("avg_response_time") @db.Decimal(8,2)
+  dataTransferred       BigInt           @default(0) @map("data_transferred") // bytes
+  recordsSynced         Int              @default(0) @map("records_synced")
+  errorsCount           Int              @default(0) @map("errors_count")
+  downTimeMinutes       Int              @default(0) @map("down_time_minutes")
+  reliabilityScore      Decimal          @default(100) @map("reliability_score") @db.Decimal(5,2)
+  performanceScore      Decimal          @default(100) @map("performance_score") @db.Decimal(5,2)
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  @@unique([companyId, integrationType, integrationId, metricDate])
+  @@index([companyId, integrationType])
+  @@map("integration_analytics")
+}
+
+model SystemAlert {
+  id                    String           @id @default(uuid())
+  companyId             String?          @map("company_id") // null for system-wide alerts
+  alertType             SystemAlertType  @map("alert_type")
+  severity              AlertSeverity
+  title                 String
+  message               String
+  source                String           // integration name or system component
+  sourceId              String?          @map("source_id")
+  isResolved            Boolean          @default(false) @map("is_resolved")
+  resolvedAt            DateTime?        @map("resolved_at")
+  resolvedBy            String?          @map("resolved_by")
+  acknowledgedAt        DateTime?        @map("acknowledged_at")
+  acknowledgedBy        String?          @map("acknowledged_by")
+  metadata              Json             @default("{}")
+  channels              String[]         @default([]) // email, sms, webhook, dashboard
+  notificationsSent     Json             @default("[]") @map("notifications_sent")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  @@index([companyId, severity, isResolved])
+  @@index([alertType, createdAt])
+  @@map("system_alerts")
+}
+
+model IntegrationWebhook {
+  id                    String           @id @default(uuid())
+  companyId             String           @map("company_id")
+  integrationType       String           @map("integration_type")
+  integrationId         String           @map("integration_id")
+  webhookUrl            String           @map("webhook_url")
+  eventTypes            String[]         @default([]) @map("event_types")
+  secret                String?          // HMAC secret
+  isActive              Boolean          @default(true) @map("is_active")
+  lastTriggered         DateTime?        @map("last_triggered")
+  failureCount          Int              @default(0) @map("failure_count")
+  maxFailures           Int              @default(5) @map("max_failures")
+  retryInterval         Int              @default(300) @map("retry_interval") // seconds
+  headers               Json             @default("{}")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  deliveries            WebhookDelivery[]
+
+  @@index([companyId, integrationType])
+  @@map("integration_webhooks")
+}
+
+model WebhookDelivery {
+  id                    String           @id @default(uuid())
+  webhookId             String           @map("webhook_id")
+  eventType             String           @map("event_type")
+  payload               Json
+  httpStatus            Int?             @map("http_status")
+  responseBody          String?          @map("response_body")
+  responseTime          Int?             @map("response_time") // milliseconds
+  attempts              Int              @default(1)
+  maxAttempts           Int              @default(3) @map("max_attempts")
+  nextRetryAt           DateTime?        @map("next_retry_at")
+  isSuccess             Boolean          @default(false) @map("is_success")
+  errorMessage          String?          @map("error_message")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  webhook               IntegrationWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+  @@index([nextRetryAt])
+  @@map("webhook_deliveries")
+}
+
+// Enhanced User Activity & Audit
+model UserActivity {
+  id                    String           @id @default(uuid())
+  userId                String           @map("user_id")
+  companyId             String           @map("company_id")
+  action                String
+  resource              String           // table or entity name
+  resourceId            String?          @map("resource_id")
+  details               Json             @default("{}")
+  ipAddress             String?          @map("ip_address")
+  userAgent             String?          @map("user_agent")
+  sessionId             String?          @map("session_id")
+  timestamp             DateTime         @default(now())
+
+  @@index([userId, timestamp])
+  @@index([companyId, action])
+  @@index([resource, resourceId])
+  @@map("user_activities")
+}
+
+model ComplianceAudit {
+  id                    String           @id @default(uuid())
+  companyId             String           @map("company_id")
+  auditType             String           @map("audit_type") // gdpr, tax, security
+  complianceLevel       String           @map("compliance_level") // compliant, warning, violation
+  findings              Json             @default("[]")
+  recommendations       Json             @default("[]")
+  auditedBy             String           @map("audited_by") // system or user ID
+  auditDate             DateTime         @default(now()) @map("audit_date")
+  nextAuditDue          DateTime?        @map("next_audit_due")
+  metadata              Json             @default("{}")
+
+  @@index([companyId, auditType])
+  @@index([complianceLevel, auditDate])
+  @@map("compliance_audits")
+}
+
+// Enums for Integration Management
+enum POSConnectionType {
+  rest_api
+  webhook
+  file_transfer
+  database_sync
+  socket
+
+  @@map("pos_connection_type")
+}
+
+enum POSAuthMethod {
+  api_key
+  oauth2
+  basic_auth
+  jwt
+  custom
+
+  @@map("pos_auth_method")
+}
+
+enum POSSupportLevel {
+  basic
+  standard
+  premium
+  enterprise
+
+  @@map("pos_support_level")
+}
+
+enum IntegrationStatus {
+  inactive
+  active
+  pending
+  error
+  maintenance
+
+  @@map("integration_status")
+}
+
+enum TestStatus {
+  passed
+  failed
+  pending
+
+  @@map("test_status")
+}
+
+enum SyncType {
+  full
+  incremental
+  delta
+  manual
+
+  @@map("sync_type")
+}
+
+enum SyncDirection {
+  bidirectional
+  inbound
+  outbound
+
+  @@map("sync_direction")
+}
+
+enum SyncStatus {
+  pending
+  running
+  completed
+  failed
+  cancelled
+
+  @@map("sync_status")
+}
+
+enum MappingStatus {
+  pending
+  active
+  error
+  inactive
+
+  @@map("mapping_status")
+}
+
+enum SystemAlertType {
+  integration_failure
+  api_limit_exceeded
+  authentication_error
+  data_sync_error
+  performance_degradation
+  security_breach
+  system_maintenance
+
+  @@map("system_alert_type")
+}

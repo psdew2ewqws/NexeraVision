@@ -1,0 +1,60 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ES6"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/pages/*": ["./pages/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/stores/*": ["./stores/*"],
+      "@/styles/*": ["./styles/*"],
+      "@/providers/*": ["./providers/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/shared/*": ["./src/shared/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "global.d.ts",
+    "src/types/**/*.ts",
+    "src/preload/**/*.ts",
+    "components/**/*.tsx",
+    "components/**/*.ts",
+    "pages/**/*.tsx",
+    "pages/**/*.ts",
+    "lib/**/*.ts",
+    "stores/**/*.ts",
+    "providers/**/*.tsx",
+    "providers/**/*.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "out",
+    "dist",
+    "src/main/**/*",
+    "main.js",
+    "services/**/*.js",
+    "test-*.js",
+    "*.config.js"
+  ]
+}

@@ -1,0 +1,242 @@
+# PrinterMaster Systemd Service Configuration
+#
+# This systemd service provides enterprise-grade service management:
+# - Security hardening with PrivateTmp, ProtectSystem
+# - Advanced restart policies (always, 10s delay)
+# - Resource limits (memory, file descriptors)
+# - After network.target dependency
+# - Proper user/group isolation
+# - Environment variable management
+#
+# Installation:
+# 1. Copy this file to /etc/systemd/system/printermaster.service
+# 2. Run: sudo systemctl daemon-reload
+# 3. Run: sudo systemctl enable printermaster.service
+# 4. Run: sudo systemctl start printermaster.service
+#
+# Management:
+# - Start: sudo systemctl start printermaster
+# - Stop: sudo systemctl stop printermaster
+# - Restart: sudo systemctl restart printermaster
+# - Status: sudo systemctl status printermaster
+# - Logs: sudo journalctl -u printermaster -f
+
+[Unit]
+Description=PrinterMaster Background Service - Enterprise Printer Management
+Documentation=https://github.com/restaurant-platform/printer-master-v2
+After=network.target network-online.target
+Wants=network-online.target
+RequiresMountsFor=/home/admin/restaurant-platform-remote-v2
+
+# Service Dependencies
+Requires=network.target
+After=network.target
+After=syslog.target
+
+# Optional dependencies (start after if available)
+After=cups.service
+After=bluetooth.service
+After=udev.service
+
+# Conflict resolution
+Conflicts=shutdown.target reboot.target halt.target
+
+[Service]
+# Service Type and Execution
+Type=simple
+ExecStart=/usr/bin/node /home/admin/restaurant-platform-remote-v2/PrinterMasterv2/service/service-main.js
+ExecReload=/bin/kill -USR2 $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+
+# Working Directory and Environment
+WorkingDirectory=/home/admin/restaurant-platform-remote-v2/PrinterMasterv2
+Environment=NODE_ENV=production
+Environment=PRINTER_SERVICE_PORT=8182
+Environment=LOG_LEVEL=info
+Environment=UV_THREADPOOL_SIZE=4
+Environment=NODE_OPTIONS=--max-old-space-size=1024
+
+# User and Group Configuration
+User=admin
+Group=admin
+SupplementaryGroups=dialout lp plugdev
+
+# Restart Configuration
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Timeout Configuration
+TimeoutStartSec=30
+TimeoutStopSec=30
+TimeoutAbortSec=15
+
+# Process Management
+KillMode=mixed
+KillSignal=SIGTERM
+SendSIGKILL=yes
+FinalKillSignal=SIGKILL
+
+# Resource Limits
+LimitNOFILE=65536
+LimitNPROC=4096
+LimitCORE=0
+
+# Memory Management
+MemoryAccounting=yes
+MemoryMax=2G
+MemoryHigh=1.5G
+MemorySwapMax=512M
+
+# CPU Management
+CPUAccounting=yes
+CPUQuota=200%
+CPUWeight=100
+
+# I/O Management
+IOAccounting=yes
+IOWeight=100
+
+# Security Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=false
+ProtectHome=false
+ProtectSystem=strict
+ReadWritePaths=/home/admin/restaurant-platform-remote-v2/PrinterMasterv2/logs
+ReadWritePaths=/home/admin/restaurant-platform-remote-v2/PrinterMasterv2/licenses
+ReadWritePaths=/tmp
+ReadWritePaths=/var/tmp
+
+# Network Security
+PrivateNetwork=false
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# System Call Filtering
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@debug @mount @cpu-emulation @obsolete @privileged @reboot @swap
+
+# Capabilities
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# Device Access (for USB printers)
+DeviceAllow=/dev/bus/usb rw
+DeviceAllow=/dev/usb rw
+DeviceAllow=/dev/lp* rw
+DeviceAllow=/dev/usblp* rw
+DevicePolicy=closed
+
+# File System Access
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectProc=invisible
+ProcSubset=pid
+
+# Additional Security
+RemoveIPC=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+
+# Logging Configuration
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=printermaster
+SyslogFacility=daemon
+SyslogLevel=info
+
+# Journal Configuration
+LogLevelMax=info
+LogExtraFields=SERVICE=printermaster
+
+# Watchdog (if supported by the service)
+WatchdogSec=60
+NotifyAccess=main
+
+# Service State Directory
+StateDirectory=printermaster
+StateDirectoryMode=0755
+LogsDirectory=printermaster
+LogsDirectoryMode=0755
+CacheDirectory=printermaster
+CacheDirectoryMode=0755
+
+# Runtime Directory
+RuntimeDirectory=printermaster
+RuntimeDirectoryMode=0755
+
+# Configuration Directory
+ConfigurationDirectory=printermaster
+ConfigurationDirectoryMode=0755
+
+# OOM Handling
+OOMScoreAdjust=100
+OOMPolicy=stop
+
+[Install]
+WantedBy=multi-user.target
+Also=printermaster-monitor.service
+
+# Additional service aliases
+Alias=printer-service.service
+Alias=restaurant-printer.service
+
+# Installation Notes:
+#
+# 1. Prerequisites:
+#    - Node.js installed and accessible at /usr/bin/node
+#    - PrinterMaster application files in correct location
+#    - User 'admin' exists with proper permissions
+#    - USB printer drivers installed
+#
+# 2. Permissions Setup:
+#    sudo usermod -a -G dialout,lp,plugdev admin
+#    sudo chown -R admin:admin /home/admin/restaurant-platform-remote-v2/PrinterMasterv2
+#    sudo chmod +x /home/admin/restaurant-platform-remote-v2/PrinterMasterv2/service/service-main.js
+#
+# 3. USB Access:
+#    # Create udev rule for printer access (optional)
+#    echo 'SUBSYSTEM=="usb", GROUP="plugdev", MODE="0664"' | sudo tee /etc/udev/rules.d/99-printermaster.rules
+#    sudo udevadm control --reload-rules
+#
+# 4. Firewall (if needed):
+#    sudo ufw allow 8182/tcp comment "PrinterMaster Service"
+#
+# 5. Monitoring:
+#    # View logs in real-time
+#    sudo journalctl -u printermaster -f
+#
+#    # Check service status
+#    sudo systemctl status printermaster
+#
+#    # View service metrics
+#    systemctl show printermaster --property=MainPID,ActiveState,SubState,LoadState,MemoryCurrent,CPUUsageNSec
+#
+# 6. Troubleshooting:
+#    # Check if service file is valid
+#    sudo systemd-analyze verify /etc/systemd/system/printermaster.service
+#
+#    # Debug service startup
+#    sudo systemctl --debug start printermaster
+#
+#    # View detailed service information
+#    sudo systemctl show printermaster
+#
+# 7. Auto-start on boot:
+#    sudo systemctl enable printermaster.service
+#    sudo systemctl is-enabled printermaster.service
+#
+# 8. Health monitoring script (optional):
+#    # Create a simple health check script
+#    #!/bin/bash
+#    # /usr/local/bin/printermaster-health.sh
+#    curl -f http://localhost:8182/health || systemctl restart printermaster
+#
+#    # Add to crontab for periodic health checks
+#    # */5 * * * * /usr/local/bin/printermaster-health.sh
