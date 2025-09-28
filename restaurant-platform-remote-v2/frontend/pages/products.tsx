@@ -777,8 +777,6 @@ export default function MenuProductsPage() {
                   selectedProducts={selectedProducts}
                   selectionMode={selectionMode}
                   refreshTrigger={refreshTrigger}
-                  platformFilter={selectedPlatformIds}
-                  showPlatformBadges={true}
                 />
               </div>
             </div>

@@ -66,20 +66,20 @@ const AnalyticsDashboard: React.FC = () => {
     }));
   };
 
-  const handleExport = async (format: 'csv' | 'pdf') => {
+  const handleExport = async (exportFormat: 'csv' | 'pdf') => {
     setIsExporting(true);
     try {
-      const blob = await analyticsService.exportData(filters, format);
+      const blob = await analyticsService.exportData(filters, exportFormat);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `analytics-report-${format(new Date(), 'yyyy-MM-dd')}.${format}`;
+      a.download = `analytics-report-${format(new Date(), 'yyyy-MM-dd')}.${exportFormat}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success(`Analytics report exported as ${format.toUpperCase()}`);
+      toast.success(`Analytics report exported as ${exportFormat.toUpperCase()}`);
     } catch (err) {
       toast.error('Failed to export analytics report');
       console.error('Export error:', err);

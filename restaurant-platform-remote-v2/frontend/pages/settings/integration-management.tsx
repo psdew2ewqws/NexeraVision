@@ -4,11 +4,11 @@ import Head from 'next/head';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLicense } from '@/contexts/LicenseContext';
 import { IntegrationDashboard } from '@/features/integration-management/components/IntegrationDashboard';
-import { LicenseWarningHeader } from '@/shared/components/LicenseWarningHeader';
+import LicenseWarningHeader from '@/shared/components/LicenseWarningHeader';
 
 const IntegrationManagementPage: NextPage = () => {
-  const { user, loading: authLoading } = useAuth();
-  const { isExpired, daysRemaining } = useLicense();
+  const { user, isLoading: authLoading } = useAuth();
+  const { license } = useLicense();
 
   if (authLoading) {
     return (
@@ -61,11 +61,11 @@ const IntegrationManagementPage: NextPage = () => {
         </div>
 
         {/* License Status Footer */}
-        {(isExpired || daysRemaining <= 7) && (
+        {(license?.is_expired || (license?.days_remaining && license.days_remaining <= 7)) && (
           <div className="fixed bottom-0 left-0 right-0 bg-red-600 text-white p-2 text-center text-sm">
-            {isExpired
+            {license?.is_expired
               ? "⚠️ License expired - Integration features may be limited"
-              : `⚠️ License expires in ${daysRemaining} days`
+              : `⚠️ License expires in ${license?.days_remaining} days`
             }
           </div>
         )}

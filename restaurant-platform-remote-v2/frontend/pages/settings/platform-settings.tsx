@@ -19,7 +19,7 @@ export default function PlatformSettingsPage() {
   }
 
   return (
-    <ProtectedRoute requiredRoles={['super_admin', 'company_owner']}>
+    <ProtectedRoute allowedRoles={['super_admin', 'company_owner']}>
       <Head>
         <title>Platform Settings - Restaurant Platform</title>
         <meta name="description" content="Manage delivery channel assignments and synchronization settings" />
