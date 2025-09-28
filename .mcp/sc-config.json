@@ -1,0 +1,34 @@
+{
+  "mcpServers": {
+    "sequential": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-sequential-thinking"],
+      "description": "Deep multi-step analysis and reasoning"
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-memory"],
+      "description": "Session persistence and memory management"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-playwright"],
+      "description": "Browser automation and testing"
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "--root", "/home/admin"],
+      "description": "Enhanced file system operations"
+    },
+    "git": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-git"],
+      "description": "Git version control operations"
+    }
+  },
+  "defaults": {
+    "autoStart": true,
+    "restartOnFailure": true,
+    "maxRestarts": 3
+  }
+}
