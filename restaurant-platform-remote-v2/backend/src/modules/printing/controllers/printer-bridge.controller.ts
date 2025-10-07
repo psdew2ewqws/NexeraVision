@@ -1,6 +1,7 @@
 import { Controller, Post, Body, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Public } from '../../../common/decorators/public.decorator';
+import { PrintingWebSocketGateway } from '../gateways/printing-websocket.gateway';
 import axios from 'axios';
 
 @ApiTags('Printer Bridge')
@@ -10,10 +11,14 @@ export class PrinterBridgeController {
   private readonly logger = new Logger(PrinterBridgeController.name);
   private readonly PRINTER_SERVICE_URL = 'http://127.0.0.1:8182';
 
+  constructor(
+    private readonly printingGateway: PrintingWebSocketGateway
+  ) {}
+
   @Post('test-print')
   @ApiOperation({
-    summary: 'Bridge endpoint to test print via PrinterMaster service',
-    description: 'Forwards print test requests directly to PrinterMaster service without WebSocket dependency'
+    summary: 'Bridge endpoint to test print via WebSocket to remote PrinterMaster',
+    description: 'Forwards print test requests via WebSocket to PrinterMaster Desktop App running in Jordan'
   })
   async testPrint(@Body() printData: {
     printer: string;
@@ -21,41 +26,40 @@ export class PrinterBridgeController {
     id?: string;
   }) {
     try {
-      this.logger.log(`[BRIDGE] Forwarding print test to PrinterMaster: ${printData.printer}`);
+      this.logger.log(`[BRIDGE] Forwarding print test via WebSocket to remote PrinterMaster: ${printData.printer}`);
 
-      const response = await axios.post(`${this.PRINTER_SERVICE_URL}/print`, {
-        printer: printData.printer,
-        text: printData.text || `Dashboard Test Print - ${new Date().toISOString()}`,
+      // Use WebSocket gateway to send test to remote PrinterMaster in Jordan
+      const result = await this.printingGateway.sendPhysicalPrintTest({
+        printerId: printData.printer,
+        printerName: printData.printer,
+        text: printData.text || `Web UI Test Print - ${new Date().toISOString()}`,
         id: printData.id || `bridge-test-${Date.now()}`
-      }, {
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
       });
 
-      this.logger.log(`[BRIDGE] PrinterMaster response:`, response.data);
+      this.logger.log(`[BRIDGE] WebSocket response:`, result);
 
       return {
-        success: response.data.success,
-        message: response.data.success
-          ? 'Print job sent successfully via bridge'
-          : 'Print job failed',
-        data: response.data.data,
-        method: 'Direct PrinterMaster Bridge',
-        timestamp: new Date().toISOString()
+        success: result.success,
+        message: result.message || (result.success
+          ? 'Print job sent successfully via WebSocket'
+          : 'Print job failed'),
+        error: result.error,
+        data: result,
+        method: 'WebSocket to Remote PrinterMaster (Jordan)',
+        timestamp: new Date().toISOString(),
+        clientsAvailable: result.clientsAvailable
       };
 
     } catch (error) {
-      this.logger.error(`[BRIDGE] Print request failed:`, error.message);
+      this.logger.error(`[BRIDGE] WebSocket print request failed:`, error.message);
 
       return {
         success: false,
-        message: 'Bridge connection to PrinterMaster failed',
+        message: 'Failed to send print job via WebSocket',
         error: error.message,
-        method: 'Direct PrinterMaster Bridge',
+        method: 'WebSocket to Remote PrinterMaster (Jordan)',
         timestamp: new Date().toISOString(),
-        suggestion: 'Check if PrinterMaster service is running on port 8182'
+        suggestion: 'Check if PrinterMaster Desktop App is running and connected via WebSocket'
       };
     }
   }
