@@ -79,8 +79,29 @@ class PhysicalPrinterService {
 
   /**
    * Print to thermal/receipt printer using ESC/POS commands
+   * OPTIMIZED: Skip unreliable thermal library, use lp command directly
    */
   async printToThermalPrinter(printerConfig, content) {
+    console.log(`🌡️ [THERMAL] Optimized thermal print for: ${printerConfig.name}`);
+    console.log(`⚡ [THERMAL-OPTIMIZED] Skipping thermal library, using fast lp command directly`);
+
+    // Skip the slow, unreliable thermal library completely
+    // Go directly to lp command which is faster and more reliable
+    try {
+      const result = await this.printViaLpCommand(printerConfig, content);
+      console.log(`✅ [THERMAL-OPTIMIZED] Print successful via direct lp command (fast path)`);
+      return {
+        ...result,
+        method: 'lp_command_optimized',
+        optimized: true
+      };
+    } catch (lpError) {
+      console.error(`❌ [THERMAL-OPTIMIZED] lp command failed:`, lpError);
+      throw lpError;
+    }
+
+    // OLD CODE BELOW - Keeping for reference but never executed
+    /*
     try {
       console.log(`🌡️ [THERMAL] Setting up thermal printer: ${printerConfig.name}`);
 
@@ -195,6 +216,7 @@ class PhysicalPrinterService {
         throw new Error(`Thermal and fallback methods failed. Thermal: ${error.message}, lp: ${fallbackError.message}`);
       }
     }
+    */
   }
 
   /**
@@ -248,7 +270,7 @@ class PhysicalPrinterService {
   }
 
   /**
-   * Format content for lp command printing (plain text thermal receipt)
+   * Format content for lp command printing (plain text thermal receipt with ESC/POS commands)
    */
   formatContentForLpCommand(content) {
     let text = '';
@@ -287,7 +309,17 @@ class PhysicalPrinterService {
     // Status
     text += '================================\n';
     text += 'Status: SUCCESS\n';
-    text += '================================\n\n\n\n';
+    text += '================================\n\n';
+
+    // Add paper feed before cut (advance paper past tear-off point)
+    text += '\n\n\n';
+
+    // Add ESC/POS paper cut command
+    // ESC d 3 - Feed 3 lines
+    text += String.fromCharCode(27, 100, 3);
+
+    // GS V 1 - Partial cut command (leaves small connection for easy tearing)
+    text += String.fromCharCode(29, 86, 1);
 
     return text;
   }
