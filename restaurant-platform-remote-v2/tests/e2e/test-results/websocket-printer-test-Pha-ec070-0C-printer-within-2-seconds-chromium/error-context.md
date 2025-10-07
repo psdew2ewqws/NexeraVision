@@ -1,0 +1,233 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Dashboard" [ref=e9] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e10]
+            - text: Dashboard
+          - generic [ref=e13]:
+            - img [ref=e14]
+            - generic [ref=e16]:
+              - heading "Node.js Printer Service" [level=1] [ref=e17]
+              - paragraph [ref=e18]: Cross-platform real-time printer management
+        - generic [ref=e19]:
+          - link "Template Builder" [ref=e20] [cursor=pointer]:
+            - /url: /settings/template-builder
+            - img [ref=e21]
+            - text: Template Builder
+          - generic [ref=e25]: "Service: connected"
+          - generic [ref=e28]: "WebSocket: connected"
+          - generic [ref=e29]: 🚀 Automatic cross-platform printer detection active
+          - button "Refresh" [ref=e30] [cursor=pointer]:
+            - img [ref=e31]
+            - text: Refresh
+      - generic [ref=e33]:
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - img [ref=e38]
+              - generic [ref=e40]: Company:Unknown Company
+            - generic [ref=e41]:
+              - img [ref=e42]
+              - generic [ref=e45]: Role:super admin
+          - generic [ref=e46]: Viewing all companies
+        - generic [ref=e47]:
+          - generic [ref=e49]:
+            - img [ref=e51]
+            - generic [ref=e53]:
+              - paragraph [ref=e54]: Total Printers
+              - paragraph [ref=e55]: "3"
+          - generic [ref=e57]:
+            - img [ref=e59]
+            - generic [ref=e61]:
+              - paragraph [ref=e62]: Online
+              - paragraph [ref=e63]: "1"
+          - generic [ref=e65]:
+            - img [ref=e67]
+            - generic [ref=e69]:
+              - paragraph [ref=e70]: Offline
+              - paragraph [ref=e71]: "2"
+          - generic [ref=e73]:
+            - img [ref=e75]
+            - generic [ref=e77]:
+              - paragraph [ref=e78]: USB Direct
+              - paragraph [ref=e79]: "1"
+          - generic [ref=e81]:
+            - img [ref=e83]
+            - generic [ref=e85]:
+              - paragraph [ref=e86]: Platforms
+              - paragraph [ref=e87]: "3"
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - heading "Node.js Printer Management" [level=3] [ref=e90]
+            - paragraph [ref=e91]: Real-time cross-platform printer detection and monitoring
+          - table [ref=e93]:
+            - rowgroup [ref=e94]:
+              - row "Printer Location Type & Connection Status Delivery Platforms Assignment Actions" [ref=e95]:
+                - cell "Printer" [ref=e96]
+                - cell "Location" [ref=e97]
+                - cell "Type & Connection" [ref=e98]
+                - cell "Status" [ref=e99]
+                - cell "Delivery Platforms" [ref=e100]
+                - cell "Assignment" [ref=e101]
+                - cell "Actions" [ref=e102]
+            - rowgroup [ref=e103]:
+              - row "POS-80C Auto-detected (linux) Test Restaurant Main Office thermal usb online Talabat Careem DHUB Call Center Website cashier Test Configure Remove" [ref=e104]:
+                - cell "POS-80C Auto-detected (linux)" [ref=e105]:
+                  - generic [ref=e106]:
+                    - img [ref=e107]
+                    - generic [ref=e109]:
+                      - generic [ref=e110]:
+                        - text: POS-80C
+                        - generic [ref=e111]: Auto-detected
+                      - generic [ref=e113]: (linux)
+                - cell "Test Restaurant Main Office" [ref=e114]:
+                  - generic [ref=e116]:
+                    - generic [ref=e117]:
+                      - img [ref=e118]
+                      - text: Test Restaurant
+                    - generic [ref=e120]:
+                      - img [ref=e121]
+                      - text: Main Office
+                - cell "thermal usb" [ref=e123]:
+                  - generic [ref=e124]:
+                    - img [ref=e125]
+                    - generic [ref=e127]:
+                      - generic [ref=e128]: thermal
+                      - generic [ref=e129]: usb
+                - cell "online" [ref=e130]:
+                  - generic [ref=e131]:
+                    - img [ref=e132]
+                    - generic [ref=e134]: online
+                - cell "Talabat Careem DHUB Call Center Website" [ref=e135]:
+                  - generic [ref=e136]:
+                    - generic [ref=e137]: Talabat
+                    - generic [ref=e138]: Careem
+                    - generic [ref=e139]: DHUB
+                    - generic [ref=e140]: Call Center
+                    - generic [ref=e141]: Website
+                - cell "cashier" [ref=e142]:
+                  - generic [ref=e143]:
+                    - img [ref=e144]
+                    - text: cashier
+                - cell "Test Configure Remove" [ref=e147]:
+                  - button "Test" [active] [ref=e148] [cursor=pointer]:
+                    - img [ref=e149]
+                    - text: Test
+                  - button "Configure" [ref=e152] [cursor=pointer]:
+                    - img [ref=e153]
+                    - text: Configure
+                  - button "Remove" [ref=e155] [cursor=pointer]:
+                    - img [ref=e156]
+                    - text: Remove
+              - row "Ricoh-MP-C4503-PDF Auto-detected (linux) Test Restaurant Main Office thermal network offline Talabat Careem DHUB Call Center Website cashier Test Configure Remove" [ref=e158]:
+                - cell "Ricoh-MP-C4503-PDF Auto-detected (linux)" [ref=e159]:
+                  - generic [ref=e160]:
+                    - img [ref=e161]
+                    - generic [ref=e163]:
+                      - generic [ref=e164]:
+                        - text: Ricoh-MP-C4503-PDF
+                        - generic [ref=e165]: Auto-detected
+                      - generic [ref=e167]: (linux)
+                - cell "Test Restaurant Main Office" [ref=e168]:
+                  - generic [ref=e170]:
+                    - generic [ref=e171]:
+                      - img [ref=e172]
+                      - text: Test Restaurant
+                    - generic [ref=e174]:
+                      - img [ref=e175]
+                      - text: Main Office
+                - cell "thermal network" [ref=e177]:
+                  - generic [ref=e178]:
+                    - img [ref=e179]
+                    - generic [ref=e181]:
+                      - generic [ref=e182]: thermal
+                      - generic [ref=e183]: network
+                - cell "offline" [ref=e184]:
+                  - generic [ref=e185]:
+                    - img [ref=e186]
+                    - generic [ref=e188]: offline
+                - cell "Talabat Careem DHUB Call Center Website" [ref=e189]:
+                  - generic [ref=e190]:
+                    - generic [ref=e191]: Talabat
+                    - generic [ref=e192]: Careem
+                    - generic [ref=e193]: DHUB
+                    - generic [ref=e194]: Call Center
+                    - generic [ref=e195]: Website
+                - cell "cashier" [ref=e196]:
+                  - generic [ref=e197]:
+                    - img [ref=e198]
+                    - text: cashier
+                - cell "Test Configure Remove" [ref=e201]:
+                  - button "Test" [ref=e202] [cursor=pointer]:
+                    - img [ref=e203]
+                    - text: Test
+                  - button "Configure" [ref=e206] [cursor=pointer]:
+                    - img [ref=e207]
+                    - text: Configure
+                  - button "Remove" [ref=e209] [cursor=pointer]:
+                    - img [ref=e210]
+                    - text: Remove
+              - row "Production Test Thermal Printer Default Auto-detected (linux) Test Restaurant Main Office thermal network offline Talabat Careem DHUB Call Center Website cashier Test Configure Remove" [ref=e212]:
+                - cell "Production Test Thermal Printer Default Auto-detected (linux)" [ref=e213]:
+                  - generic [ref=e214]:
+                    - img [ref=e215]
+                    - generic [ref=e217]:
+                      - generic [ref=e218]:
+                        - text: Production Test Thermal Printer
+                        - generic [ref=e219]: Default
+                        - generic [ref=e220]: Auto-detected
+                      - generic [ref=e222]: (linux)
+                - cell "Test Restaurant Main Office" [ref=e223]:
+                  - generic [ref=e225]:
+                    - generic [ref=e226]:
+                      - img [ref=e227]
+                      - text: Test Restaurant
+                    - generic [ref=e229]:
+                      - img [ref=e230]
+                      - text: Main Office
+                - cell "thermal network" [ref=e232]:
+                  - generic [ref=e233]:
+                    - img [ref=e234]
+                    - generic [ref=e236]:
+                      - generic [ref=e237]: thermal
+                      - generic [ref=e238]: network
+                - cell "offline" [ref=e239]:
+                  - generic [ref=e240]:
+                    - img [ref=e241]
+                    - generic [ref=e243]: offline
+                - cell "Talabat Careem DHUB Call Center Website" [ref=e244]:
+                  - generic [ref=e245]:
+                    - generic [ref=e246]: Talabat
+                    - generic [ref=e247]: Careem
+                    - generic [ref=e248]: DHUB
+                    - generic [ref=e249]: Call Center
+                    - generic [ref=e250]: Website
+                - cell "cashier" [ref=e251]:
+                  - generic [ref=e252]:
+                    - img [ref=e253]
+                    - text: cashier
+                - cell "Test Configure Remove" [ref=e256]:
+                  - button "Test" [ref=e257] [cursor=pointer]:
+                    - img [ref=e258]
+                    - text: Test
+                  - button "Configure" [ref=e261] [cursor=pointer]:
+                    - img [ref=e262]
+                    - text: Configure
+                  - button "Remove" [ref=e264] [cursor=pointer]:
+                    - img [ref=e265]
+                    - text: Remove
+    - status [ref=e272]: Failed to send print job via WebSocket and HTTP
+    - complementary "React Query Devtools":
+      - button "Open React Query Devtools" [ref=e273] [cursor=pointer]:
+        - img [ref=e274]
+        - generic [ref=e280]: Open React Query Devtools
+  - button "Open Next.js Dev Tools" [ref=e286] [cursor=pointer]:
+    - img [ref=e287]
+  - alert [ref=e290]
+```

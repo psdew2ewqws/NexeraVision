@@ -1,0 +1,266 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    CORRELATION ID E2E TEST FLOW DIAGRAM
+═══════════════════════════════════════════════════════════════════════════════
+
+PHASE 1: TEST INITIALIZATION
+═══════════════════════════════════════════════════════════════════════════════
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        run-correlation-test.sh                              │
+│                                                                             │
+│  1. ✅ Check Backend (port 3001)                                           │
+│  2. ✅ Check Frontend (31.57.166.18:3000)                                  │
+│  3. ✅ Check PrinterMaster (port 8182)                                     │
+│  4. ✅ Verify Playwright installation                                      │
+│  5. 🗑️  Clear log files (/tmp/backend-debug.log, /tmp/printer-debug.log)  │
+│  6. 🚀 Launch Playwright test                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+PHASE 2: BROWSER AUTOMATION (Playwright)
+═══════════════════════════════════════════════════════════════════════════════
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    🌐 Chromium Browser (Visible)                            │
+│                                                                             │
+│  Step 1: Open http://31.57.166.18:3000/settings/printing                  │
+│           │                                                                 │
+│           ├─ Wait for page load                                            │
+│           ├─ Enable console log capture                                    │
+│           └─ Enable network request monitoring                             │
+│                                                                             │
+│  Step 2: Locate Test Print Button                                          │
+│           │                                                                 │
+│           ├─ Find printer card for "POS-80C"                               │
+│           ├─ Locate "Test Print" button                                    │
+│           └─ Verify button is visible                                      │
+│                                                                             │
+│  Step 3: Click Test Print                                                  │
+│           │                                                                 │
+│           ├─ Record start time                                             │
+│           ├─ Click button                                                  │
+│           ├─ Monitor console for correlation ID                            │
+│           ├─ Monitor network requests                                      │
+│           └─ Record end time                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+PHASE 3: FRONTEND REQUEST GENERATION
+═══════════════════════════════════════════════════════════════════════════════
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      Frontend (Next.js on port 3000)                        │
+│                                                                             │
+│  1. Generate Correlation ID                                                 │
+│     ├─ Format: printer_test_[a-z0-9]{16}                                  │
+│     ├─ Example: printer_test_a1b2c3d4e5f6g7h8                             │
+│     └─ Log to browser console: "🆔 Correlation ID: printer_test_..."      │
+│                                                                             │
+│  2. Build HTTP Request                                                      │
+│     ├─ Method: POST                                                        │
+│     ├─ URL: http://localhost:3001/api/v1/printing/printers/POS-80C/test   │
+│     ├─ Header: X-Correlation-ID: printer_test_a1b2c3d4e5f6g7h8            │
+│     ├─ Header: Authorization: Bearer [JWT_TOKEN]                           │
+│     └─ Body: { printerName: "POS-80C" }                                   │
+│                                                                             │
+│  3. Send Request to Backend                                                 │
+│     └─ Await response                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+PHASE 4: BACKEND PROCESSING
+═══════════════════════════════════════════════════════════════════════════════
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     Backend (NestJS on port 3001)                           │
+│                                                                             │
+│  1. Receive Request                                                         │
+│     ├─ Extract correlation ID from X-Correlation-ID header                 │
+│     ├─ Validate JWT token                                                  │
+│     └─ Route to PrintingController.testPrinterConnection()                 │
+│                                                                             │
+│  2. Log Correlation ID                                                      │
+│     ├─ Write to /tmp/backend-debug.log                                     │
+│     ├─ Format: "🆔 [PHYSICAL-TEST] Correlation ID: printer_test_..."      │
+│     └─ Include timestamp and request details                               │
+│                                                                             │
+│  3. Process Print Request                                                   │
+│     ├─ Validate printer exists (POS-80C)                                   │
+│     ├─ Build test receipt content                                          │
+│     ├─ Generate ESC/POS commands                                           │
+│     └─ Forward to PrinterMaster service                                    │
+│                                                                             │
+│  4. Call PrinterMaster                                                      │
+│     ├─ URL: http://localhost:8182/print                                    │
+│     ├─ Include correlation ID in request body                              │
+│     └─ Wait for response                                                   │
+│                                                                             │
+│  5. Log Resolution                                                          │
+│     ├─ Write to /tmp/backend-debug.log                                     │
+│     ├─ Format: "✅ [REQ-RES] Resolved request: printer_test_..."          │
+│     ├─ Include response time (e.g., "Response time: 234ms")                │
+│     └─ Include success/failure status                                      │
+│                                                                             │
+│  6. Return Response to Frontend                                             │
+│     ├─ Status: 200 OK or error code                                        │
+│     ├─ Header: X-Correlation-ID: printer_test_a1b2c3d4e5f6g7h8            │
+│     └─ Body: { success: true, message: "Test print sent" }                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+PHASE 5: DESKTOP APP PRINTING
+═══════════════════════════════════════════════════════════════════════════════
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  PrinterMaster Desktop App (port 8182)                      │
+│                                                                             │
+│  1. Receive Print Job                                                       │
+│     ├─ Extract correlation ID from request                                 │
+│     ├─ Validate printer name (POS-80C)                                     │
+│     └─ Queue print job                                                     │
+│                                                                             │
+│  2. Log Correlation ID                                                      │
+│     ├─ Write to /tmp/printer-debug.log                                     │
+│     ├─ Format: "Processing job with correlation ID: printer_test_..."      │
+│     └─ Include job details                                                 │
+│                                                                             │
+│  3. Process Print Job                                                       │
+│     ├─ Convert text to ESC/POS commands                                    │
+│     ├─ Send to physical printer via CUPS                                   │
+│     ├─ Monitor print status                                                │
+│     └─ Log each step with correlation ID                                   │
+│                                                                             │
+│  4. Return Status                                                           │
+│     └─ Response: { success: true, jobId: "..." }                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+PHASE 6: TEST VALIDATION
+═══════════════════════════════════════════════════════════════════════════════
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Playwright Test Assertions                           │
+│                                                                             │
+│  1. Browser Console Validation                                              │
+│     ├─ ✅ Correlation ID logged to console                                 │
+│     ├─ ✅ Format matches: /^printer_test_[a-z0-9]{16}$/                   │
+│     └─ ✅ Success message displayed                                        │
+│                                                                             │
+│  2. Network Request Validation                                              │
+│     ├─ ✅ Request sent to correct endpoint                                 │
+│     ├─ ✅ X-Correlation-ID header present                                  │
+│     ├─ ✅ Response received                                                │
+│     └─ ✅ Response time < 5000ms                                           │
+│                                                                             │
+│  3. Backend Log Validation                                                  │
+│     ├─ Parse /tmp/backend-debug.log                                        │
+│     ├─ ✅ Find: "🆔 [PHYSICAL-TEST] Correlation ID: printer_test_..."     │
+│     ├─ ✅ Find: "✅ [REQ-RES] Resolved request: printer_test_..."         │
+│     ├─ ✅ Verify response time logged                                      │
+│     └─ ✅ Count correlation ID occurrences                                 │
+│                                                                             │
+│  4. Desktop App Log Validation                                              │
+│     ├─ Parse /tmp/printer-debug.log                                        │
+│     ├─ ✅ Find correlation ID in logs                                      │
+│     ├─ ✅ Verify print job processed                                       │
+│     └─ ✅ Count correlation ID occurrences                                 │
+│                                                                             │
+│  5. End-to-End Validation                                                   │
+│     ├─ ✅ Same correlation ID in all three layers                          │
+│     ├─ ✅ Unique ID for this test run                                      │
+│     ├─ ✅ Total time < 5000ms                                              │
+│     └─ ✅ No errors in any layer                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+
+PHASE 7: REPORT GENERATION
+═══════════════════════════════════════════════════════════════════════════════
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Test Results & Artifacts                           │
+│                                                                             │
+│  1. Console Output                                                          │
+│     ├─ Test execution summary                                              │
+│     ├─ Correlation ID identified                                           │
+│     ├─ Response time recorded                                              │
+│     ├─ Backend log analysis                                                │
+│     ├─ Desktop log analysis                                                │
+│     └─ Pass/Fail status                                                    │
+│                                                                             │
+│  2. HTML Report                                                             │
+│     ├─ Location: backend/playwright-report/index.html                      │
+│     ├─ Screenshots (if failed)                                             │
+│     ├─ Videos (if failed)                                                  │
+│     ├─ Network logs                                                        │
+│     └─ Console logs                                                        │
+│                                                                             │
+│  3. JSON Results                                                            │
+│     ├─ Location: backend/test-results/correlation-id-results.json          │
+│     ├─ Machine-readable results                                            │
+│     └─ CI/CD integration ready                                             │
+│                                                                             │
+│  4. Log Files                                                               │
+│     ├─ /tmp/backend-debug.log (backend correlation tracking)               │
+│     └─ /tmp/printer-debug.log (desktop app correlation tracking)           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+                               TEST FLOW COMPLETE
+═══════════════════════════════════════════════════════════════════════════════
+
+EXPECTED TIMELINE:
+─────────────────
+0ms     ├─ Test initialization
+100ms   ├─ Browser launch
+500ms   ├─ Page navigation
+1000ms  ├─ Page load complete
+1200ms  ├─ Find Test Print button
+1300ms  ├─ Click button
+1400ms  ├─ Frontend generates correlation ID
+1500ms  ├─ Request sent to backend
+1700ms  ├─ Backend receives request
+1750ms  ├─ Backend logs correlation ID
+1800ms  ├─ Backend calls PrinterMaster
+2000ms  ├─ PrinterMaster receives job
+2050ms  ├─ PrinterMaster logs correlation ID
+2200ms  ├─ Print job queued
+2500ms  ├─ Response to backend
+2550ms  ├─ Backend logs resolution
+2600ms  ├─ Response to frontend
+2700ms  ├─ Frontend receives response
+3000ms  ├─ Log file flush
+3500ms  ├─ Test reads logs
+4000ms  ├─ Assertions executed
+4500ms  └─ Report generated
+
+TOTAL DURATION: ~4500ms (< 5 second target)
+
+═══════════════════════════════════════════════════════════════════════════════
+                            CORRELATION ID JOURNEY
+═══════════════════════════════════════════════════════════════════════════════
+
+printer_test_a1b2c3d4e5f6g7h8
+         │
+         ├──► Browser Console (logged)
+         │
+         ├──► HTTP Header (X-Correlation-ID)
+         │
+         ├──► Backend Controller (received)
+         │
+         ├──► Backend Logger (/tmp/backend-debug.log)
+         │         │
+         │         ├─ "🆔 [PHYSICAL-TEST] Correlation ID: printer_test_a1b2c3d4e5f6g7h8"
+         │         └─ "✅ [REQ-RES] Resolved request: printer_test_a1b2c3d4e5f6g7h8"
+         │
+         ├──► PrinterMaster Request (body.correlationId)
+         │
+         ├──► Desktop App Logger (/tmp/printer-debug.log)
+         │         │
+         │         └─ "Processing job with correlation ID: printer_test_a1b2c3d4e5f6g7h8"
+         │
+         ├──► Print Job Queue (metadata)
+         │
+         ├──► Physical Printer (job execution)
+         │
+         └──► Test Validation (assertions)
+
+═══════════════════════════════════════════════════════════════════════════════

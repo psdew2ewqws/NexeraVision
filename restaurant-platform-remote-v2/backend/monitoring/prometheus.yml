@@ -1,0 +1,78 @@
+# Prometheus Configuration for Restaurant Platform Monitoring
+# Export interval: 15 seconds
+# Retention: 30 days
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'restaurant-platform-prod'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'localhost:9093'
+
+# Load alert rules
+rule_files:
+  - 'alert-rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Backend API metrics
+  - job_name: 'restaurant-platform-backend'
+    metrics_path: '/api/v1/metrics'
+    static_configs:
+      - targets:
+          - 'localhost:3001'
+        labels:
+          service: 'backend'
+          component: 'api'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Desktop App metrics (if exposed)
+  - job_name: 'printer-master-desktop'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+          - 'localhost:8182'
+        labels:
+          service: 'desktop-app'
+          component: 'printer-service'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets:
+          - 'localhost:9100'
+        labels:
+          service: 'infrastructure'
+          component: 'node'
+
+  # PostgreSQL exporter
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets:
+          - 'localhost:9187'
+        labels:
+          service: 'database'
+          component: 'postgres'
+
+# Remote write for long-term storage (optional)
+# remote_write:
+#   - url: 'http://prometheus-remote-storage:9201/write'
+
+# Storage configuration
+storage:
+  tsdb:
+    path: '/var/lib/prometheus/data'
+    retention:
+      time: 30d
+      size: 50GB

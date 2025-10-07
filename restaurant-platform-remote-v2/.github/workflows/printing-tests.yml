@@ -1,0 +1,283 @@
+name: PrinterMaster WebSocket Testing Suite
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/src/modules/printing/**'
+      - 'backend/tests/**'
+      - '.github/workflows/printing-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'backend/src/modules/printing/**'
+      - 'backend/tests/**'
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run unit tests - Correlation ID System
+        working-directory: ./backend
+        run: npm test -- src/modules/printing/tests/unit/correlation-id.spec.ts --coverage --verbose
+
+      - name: Run unit tests - Health Monitoring
+        working-directory: ./backend
+        run: npm test -- src/modules/printing/tests/unit/health-monitoring.spec.ts --coverage --verbose
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: unit-tests
+          name: unit-coverage
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: E$$athecode006
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Setup database
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:E$$athecode006@localhost:5432/postgres
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: Run integration tests - WebSocket Print Flow
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:E$$athecode006@localhost:5432/postgres
+          JWT_SECRET: test-jwt-secret-key
+          NODE_ENV: test
+        run: npm test -- src/modules/printing/tests/integration/websocket-print-flow.spec.ts --detectOpenHandles --forceExit --verbose
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results
+          path: backend/coverage/
+
+  load-tests:
+    name: Load Tests
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: E$$athecode006
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Install Artillery
+        run: npm install -g artillery@latest
+
+      - name: Setup database
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:E$$athecode006@localhost:5432/postgres
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: Start backend server
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:E$$athecode006@localhost:5432/postgres
+          JWT_SECRET: test-jwt-secret-key
+          NODE_ENV: test
+          PORT: 3001
+        run: |
+          npm run start:prod &
+          sleep 10
+          curl -f http://localhost:3001/health || exit 1
+
+      - name: Run Artillery load tests
+        working-directory: ./backend/tests/load
+        run: |
+          artillery run --output report.json printing-websocket-load.yml
+
+      - name: Generate load test report
+        if: always()
+        run: |
+          artillery report backend/tests/load/report.json --output backend/tests/load/report.html
+
+      - name: Upload load test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: load-test-results
+          path: |
+            backend/tests/load/report.json
+            backend/tests/load/report.html
+
+      - name: Check load test thresholds
+        run: |
+          # Parse Artillery report for threshold violations
+          node -e "
+          const report = require('./backend/tests/load/report.json');
+          const p95 = report.aggregate.latency.p95;
+          const p99 = report.aggregate.latency.p99;
+          const errorRate = report.aggregate.errors / report.aggregate.requests;
+
+          console.log('Performance Metrics:');
+          console.log('  P95 Latency:', p95, 'ms');
+          console.log('  P99 Latency:', p99, 'ms');
+          console.log('  Error Rate:', (errorRate * 100).toFixed(2), '%');
+
+          if (p95 > 500) {
+            console.error('FAIL: P95 latency exceeds 500ms threshold');
+            process.exit(1);
+          }
+
+          if (p99 > 1000) {
+            console.error('FAIL: P99 latency exceeds 1000ms threshold');
+            process.exit(1);
+          }
+
+          if (errorRate > 0.05) {
+            console.error('FAIL: Error rate exceeds 5% threshold');
+            process.exit(1);
+          }
+
+          console.log('SUCCESS: All performance thresholds met');
+          "
+
+  code-quality:
+    name: Code Quality & Coverage
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run all tests with coverage
+        working-directory: ./backend
+        run: npm test -- src/modules/printing/tests --coverage
+
+      - name: Check coverage thresholds
+        working-directory: ./backend
+        run: |
+          npm test -- --coverage --coverageThreshold='{"global":{"branches":80,"functions":80,"lines":80,"statements":80}}'
+
+      - name: SonarCloud Scan
+        if: github.event_name == 'push'
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: backend/
+          args: >
+            -Dsonar.organization=restaurant-platform
+            -Dsonar.projectKey=restaurant-platform-printing
+            -Dsonar.sources=src/modules/printing
+            -Dsonar.tests=src/modules/printing/tests
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+  notification:
+    name: Test Results Notification
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, load-tests, code-quality]
+    if: always()
+
+    steps:
+      - name: Notify Success
+        if: ${{ needs.unit-tests.result == 'success' && needs.integration-tests.result == 'success' && needs.load-tests.result == 'success' && needs.code-quality.result == 'success' }}
+        run: |
+          echo "All tests passed successfully!"
+
+      - name: Notify Failure
+        if: ${{ needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.load-tests.result == 'failure' || needs.code-quality.result == 'failure' }}
+        run: |
+          echo "Some tests failed. Please review the results."
+          exit 1

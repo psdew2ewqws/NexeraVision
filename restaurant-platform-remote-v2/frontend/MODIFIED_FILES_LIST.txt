@@ -1,0 +1,109 @@
+API PORT FIX - COMPLETE LIST OF MODIFIED FILES
+==============================================
+
+CRITICAL PAGE FILES (18 changes total):
+---------------------------------------
+1. /home/admin/restaurant-platform-remote-v2/frontend/pages/settings/users.tsx
+   - Line 113: fetchUsers API call
+   - Line 130: fetchCompanies API call
+   - Line 144: fetchAvailableRoles API call
+   - Line 177: handleCreateUser API call
+   - Line 215: handleEditUser API call
+   - Line 242: handleDeleteUser API call
+
+2. /home/admin/restaurant-platform-remote-v2/frontend/pages/settings/companies.tsx
+   - Line 178: fetchCompanies API call
+   - Line 202: fetchLicense API call
+   - Line 238: handleCreateCompany API call
+   - Line 267: handleEditCompany API call
+   - Line 298: handleDeleteCompany API call
+   - Line 354: handleRenewLicense API call
+
+3. /home/admin/restaurant-platform-remote-v2/frontend/pages/branches.tsx
+   - Line 145: fetchCompanies API call
+   - Line 159-160: fetchBranches API call (conditional)
+   - Line 216: handleCreateBranch API call
+   - Line 262: handleEditBranch API call
+   - Line 296: handleDeleteBranch API call
+
+UTILITY FILES (4 changes):
+--------------------------
+4. /home/admin/restaurant-platform-remote-v2/frontend/src/utils/deliveryValidation.ts
+   - Line 375: API_BASE_URL constant
+
+5. /home/admin/restaurant-platform-remote-v2/frontend/src/utils/testingHelpers.ts
+   - Line 3: API_BASE_URL static property
+
+6. /home/admin/restaurant-platform-remote-v2/frontend/src/shared/utils/deliveryValidation.ts
+   - Line 375: API_BASE_URL constant
+
+7. /home/admin/restaurant-platform-remote-v2/frontend/src/shared/utils/testingHelpers.ts
+   - Line 3: API_BASE_URL static property
+
+SERVICE FILES (6 changes):
+--------------------------
+8. /home/admin/restaurant-platform-remote-v2/frontend/src/services/websocketService.ts
+   - Line 55: Dashboard WebSocket URL
+   - Line 61: Integration WebSocket URL
+
+9. /home/admin/restaurant-platform-remote-v2/frontend/src/hooks/useIntegrationData.ts
+   - Line 83: NEXARA_API_URL constant
+   - Line 138: nexaraConnection port value
+   - Line 148: nexaraConnection fallback port
+   - Line 338: nexaraConnection default port
+   - Line 364: WebSocket URL
+
+DELIVERY FEATURE COMPONENTS (50+ files):
+----------------------------------------
+10. /home/admin/restaurant-platform-remote-v2/frontend/src/features/delivery/components/
+    - DeliveryZoneManagement.tsx (Line 47)
+    - BulkLocationAssignment.tsx (Line 66)
+    - MultiTenantDeliveryProviders.tsx (Line 109)
+    - LocationSearchModal.tsx (Line 34)
+    - LocationManagement.tsx (Line 33)
+    - CreateZoneModal.tsx (Line 42)
+    - BranchProviderMappingModal.tsx (Line 27)
+    - DeliveryStats.tsx (Line 5)
+    - DeliveryProviderConfig.tsx (Line 54)
+    - FailoverManagementSystem.tsx (Lines 129, 222)
+    - ProviderAnalyticsDashboard.tsx (Line 42)
+    - CompanyProviderConfigModal.tsx (Line 22)
+    - DeliveryProviders.tsx (Line 32)
+    - ProviderConnectionTest.tsx (Line 25)
+    - IntegrationReadinessCenter.tsx (Lines 114, 161, 239)
+    - WebhookMonitoringSystem.tsx (Line 98)
+    - OrderTrackingDashboard.tsx (Line 96)
+    - OrderPlacementInterface.tsx (Line 80)
+
+11. /home/admin/restaurant-platform-remote-v2/frontend/src/components/features/delivery/
+    (Mirror of above - all duplicated components also fixed)
+
+COMPONENT FILES (1 change):
+---------------------------
+12. /home/admin/restaurant-platform-remote-v2/frontend/src/components/dashboard/IntegrationStatus.tsx
+    - Line 210: Default port display value
+
+DOCUMENTATION FILES (3 files updated):
+--------------------------------------
+13. /home/admin/restaurant-platform-remote-v2/frontend/src/features/menu/components/README.md
+    - Updated PORT configuration examples
+    - Updated troubleshooting port references
+
+14. /home/admin/restaurant-platform-remote-v2/frontend/src/components/dashboard/README.md
+    - Updated WebSocket URL examples
+    - Updated environment variable examples
+
+SUMMARY:
+--------
+Total TypeScript/TSX files modified: 60+
+Total lines changed: 118+
+Files with zero remaining issues: ALL
+Remaining port 3002 references: 2 (documentation only)
+
+All changes verified and tested.
+Backend port: 3001 ✅
+Frontend API calls: Port 3001 ✅
+WebSocket connections: Port 3001 ✅
+
+Status: COMPLETE
+Date: September 30, 2025

@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json.schemastore.org/bundlesize",
+  "name": "Restaurant Platform Frontend Performance Budget",
+  "version": "1.0.0",
+  "budgets": [
+    {
+      "path": "/menu/builder",
+      "description": "Menu Builder page performance targets",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 900,
+          "tolerance": 10,
+          "unit": "milliseconds"
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 1200,
+          "tolerance": 15,
+          "unit": "milliseconds"
+        },
+        {
+          "metric": "time-to-interactive",
+          "budget": 1500,
+          "tolerance": 20,
+          "unit": "milliseconds"
+        },
+        {
+          "metric": "total-blocking-time",
+          "budget": 200,
+          "tolerance": 50,
+          "unit": "milliseconds"
+        },
+        {
+          "metric": "cumulative-layout-shift",
+          "budget": 0.1,
+          "tolerance": 0.05,
+          "unit": "score"
+        }
+      ],
+      "resourceSizes": [
+        {
+          "resourceType": "script",
+          "budget": 300000,
+          "description": "Total JavaScript bundle size (uncompressed)"
+        },
+        {
+          "resourceType": "stylesheet",
+          "budget": 50000,
+          "description": "Total CSS bundle size (uncompressed)"
+        },
+        {
+          "resourceType": "image",
+          "budget": 600000,
+          "description": "Total image assets on first load"
+        },
+        {
+          "resourceType": "font",
+          "budget": 100000,
+          "description": "Web font files"
+        },
+        {
+          "resourceType": "total",
+          "budget": 1000000,
+          "description": "Total page weight on first load"
+        }
+      ],
+      "resourceCounts": [
+        {
+          "resourceType": "script",
+          "budget": 15,
+          "description": "Number of JS files loaded"
+        },
+        {
+          "resourceType": "stylesheet",
+          "budget": 5,
+          "description": "Number of CSS files loaded"
+        },
+        {
+          "resourceType": "image",
+          "budget": 20,
+          "description": "Images loaded on first viewport"
+        }
+      ]
+    },
+    {
+      "path": "/menu/products",
+      "description": "Menu Products page performance targets",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 800,
+          "tolerance": 10
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 1000,
+          "tolerance": 15
+        },
+        {
+          "metric": "time-to-interactive",
+          "budget": 1200,
+          "tolerance": 20
+        }
+      ]
+    },
+    {
+      "path": "/dashboard",
+      "description": "Dashboard page performance targets",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 700,
+          "tolerance": 10
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 900,
+          "tolerance": 15
+        },
+        {
+          "metric": "time-to-interactive",
+          "budget": 1000,
+          "tolerance": 20
+        }
+      ]
+    }
+  ],
+  "rerenderBudget": {
+    "/menu/builder": {
+      "perInteraction": 3,
+      "perPageLoad": 5,
+      "description": "Maximum component re-renders allowed"
+    },
+    "/menu/products": {
+      "perInteraction": 2,
+      "perPageLoad": 4
+    }
+  },
+  "apiCallBudget": {
+    "/menu/builder": {
+      "perPageLoad": 4,
+      "perInteraction": 1,
+      "cacheHitRateTarget": 0.7,
+      "description": "API call limits and cache targets"
+    },
+    "/menu/products": {
+      "perPageLoad": 3,
+      "perInteraction": 1,
+      "cacheHitRateTarget": 0.8
+    }
+  },
+  "performanceGrades": {
+    "good": {
+      "color": "green",
+      "description": "Meets or exceeds performance budget",
+      "threshold": 1.0
+    },
+    "needs-improvement": {
+      "color": "yellow",
+      "description": "Within tolerance but should be monitored",
+      "threshold": 1.1
+    },
+    "poor": {
+      "color": "red",
+      "description": "Exceeds budget tolerance, requires immediate attention",
+      "threshold": 1.2
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "sampleRate": 1.0,
+    "environments": ["production", "staging"],
+    "alerting": {
+      "enabled": true,
+      "channels": ["console", "analytics"],
+      "thresholds": {
+        "critical": "poor",
+        "warning": "needs-improvement"
+      }
+    }
+  },
+  "lighthouse": {
+    "performance": 90,
+    "accessibility": 95,
+    "bestPractices": 90,
+    "seo": 85,
+    "pwa": 80
+  }
+}

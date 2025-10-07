@@ -1,0 +1,65 @@
+INTEGRATION DEVELOPER PORTAL - FILE STRUCTURE
+==============================================
+
+📁 /home/admin/restaurant-platform-remote-v2/frontend/
+
+📂 pages/integration/
+├── 🏠 index.tsx                  → Redirects to dashboard
+├── 📊 dashboard.tsx              → Overview, stats, charts (16KB)
+├── 🔑 api-keys.tsx               → API key management (15KB)
+├── 🔗 webhooks.tsx               → Webhook configuration (18KB)
+├── 📖 docs.tsx                   → Interactive documentation (19KB)
+├── 📡 monitoring.tsx             → Real-time logs & metrics (16KB)
+├── ⚡ playground.tsx             → API testing tool (17KB)
+└── 📄 README.md                  → Portal documentation (4.3KB)
+
+📂 src/components/integration/
+├── 📦 index.ts                   → Component exports
+├── 📂 layout/
+│   └── 🎨 IntegrationLayout.tsx  → Main layout with sidebar
+└── 📂 ui/
+    ├── 📦 index.ts               → UI exports
+    ├── 🔘 Button.tsx             → Button component
+    ├── 📇 Card.tsx               → Card container
+    ├── 💻 CodeBlock.tsx          → Code display with copy
+    ├── 🏷️  Badge.tsx              → Status badges
+    ├── 📝 Input.tsx              → Form inputs
+    ├── 🪟 Modal.tsx              → Modal dialogs
+    └── 📑 Tabs.tsx               → Tabbed content
+
+📂 src/lib/
+├── 🌐 integration-api.ts         → REST API client
+└── 🔌 integration-websocket.ts   → WebSocket support
+
+📄 INTEGRATION_PORTAL_SUMMARY.md  → Complete implementation guide
+
+STATISTICS
+==========
+Total Files: 21 files
+Lines of Code: 3,610 lines
+Pages: 7 files (6 functional + 1 redirect)
+Components: 11 files (1 layout + 10 UI)
+Libraries: 2 files (API + WebSocket)
+
+ROUTES
+======
+/integration                       → Auto-redirect to dashboard
+/integration/dashboard             → Main overview
+/integration/api-keys              → API key management
+/integration/webhooks              → Webhook configuration  
+/integration/docs                  → API documentation
+/integration/monitoring            → Real-time logs
+/integration/playground            → API testing
+
+FEATURES
+========
+✅ Dark theme optimized for developers
+✅ 6 fully functional pages
+✅ Real-time monitoring capability
+✅ Interactive API playground
+✅ Code examples (cURL, JS, Python)
+✅ Webhook signature verification
+✅ WebSocket infrastructure
+✅ Comprehensive API client
+✅ Responsive design
+✅ Keyboard navigation

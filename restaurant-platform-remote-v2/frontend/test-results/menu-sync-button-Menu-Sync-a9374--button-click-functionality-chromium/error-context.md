@@ -1,0 +1,81 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e6]:
+        - navigation [ref=e7]:
+          - link [ref=e8] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e9] [cursor=pointer]
+          - img [ref=e11]
+          - generic [ref=e13]: Menu Management
+          - img [ref=e14]
+          - generic [ref=e16]: Menu Lists
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - link "Back to Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20] [cursor=pointer]
+              - text: Back to Dashboard
+            - generic [ref=e23]:
+              - heading "Menu Lists" [level=1] [ref=e24]
+              - paragraph [ref=e25]: Manage and organize your saved menu configurations for different platforms
+          - link "Create New Menu" [ref=e27] [cursor=pointer]:
+            - /url: /menu/builder
+            - img [ref=e28] [cursor=pointer]
+            - text: Create New Menu
+      - generic [ref=e30]:
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - textbox "Search menus..." [ref=e35]
+            - combobox [ref=e36]:
+              - option "All Status" [selected]
+              - option "Active"
+              - option "Draft"
+              - option "Inactive"
+          - generic [ref=e37]:
+            - generic [ref=e38]:
+              - img [ref=e39]
+              - generic [ref=e41]: 0 menus
+            - generic [ref=e42]:
+              - img [ref=e43]
+              - generic [ref=e45]: 0 active
+        - generic [ref=e47]:
+          - img [ref=e48]
+          - heading "No menus found" [level=3] [ref=e50]
+          - paragraph [ref=e51]: Get started by creating your first menu configuration.
+          - link "Create First Menu" [ref=e52] [cursor=pointer]:
+            - /url: /menu/builder
+            - img [ref=e53] [cursor=pointer]
+            - text: Create First Menu
+        - generic [ref=e55]:
+          - heading "Menu Management Tips" [level=3] [ref=e56]
+          - generic [ref=e57]:
+            - paragraph [ref=e58]: "Effectively manage your restaurant menus across different platforms and scenarios:"
+            - list [ref=e59]:
+              - listitem [ref=e60]:
+                - text: Use the
+                - strong [ref=e61]: Sync buttons
+                - text: to push menu changes to connected delivery platforms instantly
+              - listitem [ref=e62]:
+                - text: Click
+                - strong [ref=e63]: Edit
+                - text: to modify menu configurations in the Menu Builder
+              - listitem [ref=e64]: Expand menus to preview items and verify product selections
+              - listitem [ref=e65]: Monitor sync status to ensure all platforms have the latest menu updates
+              - listitem [ref=e66]:
+                - text: "Use different menu statuses:"
+                - emphasis [ref=e67]: Active
+                - text: for live menus,
+                - emphasis [ref=e68]: Draft
+                - text: for work in progress
+    - complementary "React Query Devtools":
+      - button "Open React Query Devtools" [ref=e69] [cursor=pointer]:
+        - img [ref=e70] [cursor=pointer]
+        - generic [ref=e76] [cursor=pointer]: Open React Query Devtools
+  - button "Open Next.js Dev Tools" [ref=e82] [cursor=pointer]:
+    - img [ref=e83] [cursor=pointer]
+  - alert [ref=e86]
+```

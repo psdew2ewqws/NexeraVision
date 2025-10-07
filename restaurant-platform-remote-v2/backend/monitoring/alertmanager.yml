@@ -1,0 +1,136 @@
+# AlertManager Configuration for Restaurant Platform
+# Routes alerts to PagerDuty, Slack, and Email based on severity
+
+global:
+  resolve_timeout: 5m
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+  slack_api_url: 'https://hooks.slack.com/services/YOUR_SLACK_WEBHOOK_URL'
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@restaurant-platform.com'
+  smtp_auth_username: 'alerts@restaurant-platform.com'
+  smtp_auth_password: 'YOUR_SMTP_PASSWORD'
+  smtp_require_tls: true
+
+# Alert routing tree
+route:
+  receiver: 'default-receiver'
+  group_by: ['alertname', 'service']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 12h
+
+  routes:
+    # CRITICAL alerts → PagerDuty
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      continue: true
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 1h
+
+    # WARNING alerts → Slack
+    - match:
+        severity: warning
+      receiver: 'slack-warnings'
+      continue: false
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+    # INFO alerts → Email
+    - match:
+        severity: info
+      receiver: 'email-info'
+      continue: false
+      group_wait: 1m
+      group_interval: 15m
+      repeat_interval: 24h
+
+    # SLA alerts → Both PagerDuty and Slack
+    - match:
+        service: sla
+      receiver: 'sla-alerts'
+      continue: false
+      group_wait: 5s
+      group_interval: 1m
+      repeat_interval: 2h
+
+# Receivers configuration
+receivers:
+  # Default receiver (fallback)
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://localhost:9094/webhook'
+
+  # PagerDuty for critical alerts
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        severity: 'critical'
+        description: '{{ .CommonAnnotations.summary }}'
+        details:
+          firing: '{{ .Alerts.Firing | len }}'
+          resolved: '{{ .Alerts.Resolved | len }}'
+          details: '{{ .CommonAnnotations.description }}'
+          runbook: '{{ .CommonAnnotations.runbook_url }}'
+
+  # Slack for warnings
+  - name: 'slack-warnings'
+    slack_configs:
+      - channel: '#platform-alerts-warnings'
+        username: 'Restaurant Platform Monitoring'
+        icon_emoji: ':warning:'
+        title: 'WARNING: {{ .CommonAnnotations.summary }}'
+        text: |-
+          *Service:* {{ .CommonLabels.service }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          *Firing Alerts:* {{ .Alerts.Firing | len }}
+        send_resolved: true
+
+  # Email for info alerts
+  - name: 'email-info'
+    email_configs:
+      - to: 'ops-team@restaurant-platform.com'
+        headers:
+          subject: 'INFO: {{ .CommonAnnotations.summary }}'
+        html: |-
+          <h2>{{ .CommonAnnotations.summary }}</h2>
+          <p><strong>Service:</strong> {{ .CommonLabels.service }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Firing Alerts:</strong> {{ .Alerts.Firing | len }}</p>
+          <p><strong>Runbook:</strong> <a href="{{ .CommonAnnotations.runbook_url }}">{{ .CommonAnnotations.runbook_url }}</a></p>
+
+  # SLA alerts to both PagerDuty and Slack
+  - name: 'sla-alerts'
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        severity: 'error'
+        description: 'SLA BREACH: {{ .CommonAnnotations.summary }}'
+    slack_configs:
+      - channel: '#platform-sla-alerts'
+        username: 'SLA Monitoring'
+        icon_emoji: ':rotating_light:'
+        title: 'SLA ALERT: {{ .CommonAnnotations.summary }}'
+        text: |-
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+        send_resolved: true
+        color: 'danger'
+
+# Inhibition rules (suppress alerts when others are firing)
+inhibit_rules:
+  # Suppress warning-level alerts if critical alert is firing for same service
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['service']
+
+  # Suppress info alerts if any higher severity alert is firing
+  - source_match_re:
+      severity: 'critical|warning'
+    target_match:
+      severity: 'info'
+    equal: ['service']

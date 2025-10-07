@@ -1,0 +1,44 @@
+{
+  "id": "careem-12345",
+  "status": "new",
+  "branch": {
+    "id": "test-branch-123",
+    "name": "Main Branch"
+  },
+  "customer": {
+    "name": "Ahmed Mohammad",
+    "phone": "+962791234567",
+    "email": "ahmed@example.com"
+  },
+  "delivery_address": {
+    "street": "King Abdullah Street",
+    "building": "Building 15",
+    "floor": "3",
+    "apartment": "301",
+    "area": "Abdoun",
+    "city": "Amman"
+  },
+  "items": [
+    {
+      "id": "item-1",
+      "name": "Chicken Shawarma",
+      "quantity": 2,
+      "item_price": 3.50,
+      "total_price": 7.00,
+      "modifiers": []
+    },
+    {
+      "id": "item-2",
+      "name": "French Fries",
+      "quantity": 1,
+      "item_price": 2.00,
+      "total_price": 2.00,
+      "modifiers": []
+    }
+  ],
+  "subtotal": 9.00,
+  "delivery_fee": 1.50,
+  "tax": 1.05,
+  "total": 11.55,
+  "payment_method": "cash"
+}

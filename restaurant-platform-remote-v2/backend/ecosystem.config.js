@@ -1,0 +1,30 @@
+module.exports = {
+  apps: [
+    {
+      name: 'restaurant-backend',
+      script: './dist/main.js',
+      cwd: '/home/admin/restaurant-platform-remote-v2/backend',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3001,
+        PRINTER_SERVICE_URL: 'http://127.0.0.1:8182',
+      },
+      env_file: '.env',
+      error_file: './logs/pm2-error.log',
+      out_file: './logs/pm2-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+      autorestart: true,
+      max_restarts: 10,
+      min_uptime: '10s',
+      max_memory_restart: '1G',
+      watch: false,
+      ignore_watch: ['node_modules', 'logs', '.git'],
+      kill_timeout: 5000,
+      wait_ready: true,
+      listen_timeout: 10000,
+    },
+  ],
+};

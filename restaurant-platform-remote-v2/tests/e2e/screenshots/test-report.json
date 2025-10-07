@@ -1,0 +1,149 @@
+{
+  "testResult": "timeout",
+  "responseTime": 15335,
+  "totalTestTime": 21028,
+  "responseMessage": "No response detected within timeout period",
+  "expectedTime": 2000,
+  "passedExpectation": false,
+  "screenshots": {
+    "pageLoaded": "/home/admin/restaurant-platform-remote-v2/tests/e2e/screenshots/01-page-loaded.png",
+    "printerFound": "/home/admin/restaurant-platform-remote-v2/tests/e2e/screenshots/04-printer-found.png",
+    "finalState": "/home/admin/restaurant-platform-remote-v2/tests/e2e/screenshots/06-final-state-timeout.png"
+  },
+  "consoleLogs": [
+    "[info] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+    "[log] [HMR] connected",
+    "[log] ProtectedRoute: Showing loading spinner - Initializing authentication...",
+    "[log] ProtectedRoute: Showing loading spinner - Initializing authentication...",
+    "[log] ProtectedRoute: Auth state change {isHydrated: false, isAuthenticated: false, isLoading: true, hasUser: false, userRole: undefined}",
+    "[log] ProtectedRoute: Waiting for hydration...",
+    "[log] ProtectedRoute: Auth state change {isHydrated: false, isAuthenticated: false, isLoading: true, hasUser: false, userRole: undefined}",
+    "[log] ProtectedRoute: Waiting for hydration...",
+    "[log] AuthContext: Hydrating auth state {hasToken: false, hasUser: false, tokenPreview: undefined...}",
+    "[log] AuthContext: No stored auth data found",
+    "[log] AuthContext: Setting up development test user",
+    "[log] AuthContext: Hydration complete",
+    "[log] AuthContext: Hydrating auth state {hasToken: true, hasUser: true, tokenPreview: test-token-developme...}",
+    "[log] AuthContext: Successfully restored auth state for user: admin@test.com",
+    "[log] AuthContext: Hydration complete",
+    "[log] ProtectedRoute: Auth state change {isHydrated: true, isAuthenticated: true, isLoading: false, hasUser: true, userRole: super_admin}",
+    "[log] Loading printers from database...",
+    "[log] ProtectedRoute: Auth state change {isHydrated: true, isAuthenticated: true, isLoading: false, hasUser: true, userRole: super_admin}",
+    "[log] ProtectedRoute: Auth checks passed - rendering content",
+    "[log] Database printers loaded: 3",
+    "[log] ✅ Loaded Desktop App printers from database: POS-80C, Ricoh-MP-C4503-PDF, Production Test Thermal Printer",
+    "[log] ProtectedRoute: Auth state change {isHydrated: true, isAuthenticated: true, isLoading: false, hasUser: true, userRole: super_admin}",
+    "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[error] Failed to fetch license: Unauthorized",
+    "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[log] Printer Socket.io connected",
+    "[log] ProtectedRoute: Auth state change {isHydrated: true, isAuthenticated: true, isLoading: false, hasUser: true, userRole: super_admin}",
+    "[log] Service status response: {isRunning: true, version: 2.0.0-modern, lastPing: 2025-10-07T00:10:56.550Z, connectedPrinters: 1, totalJobs: 0}",
+    "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[warning] Phase 4 analytics not available",
+    "[log] ProtectedRoute: Auth state change {isHydrated: true, isAuthenticated: true, isLoading: false, hasUser: true, userRole: super_admin}",
+    "[log] ProtectedRoute: Auth checks passed - rendering content",
+    "[log] Testing printer via PrinterBridge: os-linux-pos-80c",
+    "[log] Using PrinterBridge test-print for printer: POS-80C",
+    "[log] PrinterBridge test response: 201 Created",
+    "[log] PrinterBridge test result: {success: false, message: Failed to send print job via WebSocket and HTTP, error: Request failed with status code 500, method: Failed, timestamp: 2025-10-07T00:11:14.189Z}",
+    "[error] PrinterBridge error details: Request failed with status code 500"
+  ],
+  "consoleErrors": [
+    "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[error] Failed to fetch license: Unauthorized",
+    "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[error] PrinterBridge error details: Request failed with status code 500"
+  ],
+  "networkRequests": [
+    {
+      "url": "http://31.57.166.18:3000/settings/printing",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:53.354Z"
+    },
+    {
+      "url": "http://31.57.166.18:3000/_next/static/chunks/webpack.js",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:53.761Z"
+    },
+    {
+      "url": "http://31.57.166.18:3000/_next/static/chunks/main.js",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:53.761Z"
+    },
+    {
+      "url": "http://31.57.166.18:3000/_next/static/chunks/pages/_app.js",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:53.761Z"
+    },
+    {
+      "url": "http://31.57.166.18:3000/_next/static/chunks/pages/settings/printing.js",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:53.778Z"
+    },
+    {
+      "url": "http://31.57.166.18:3000/_next/static/development/_buildManifest.js",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:53.779Z"
+    },
+    {
+      "url": "http://31.57.166.18:3000/_next/static/development/_ssgManifest.js",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:53.779Z"
+    },
+    {
+      "url": "http://31.57.166.18:3000/_next/static/chunks/react-refresh.js",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:53.779Z"
+    },
+    {
+      "url": "http://31.57.166.18:3000/_next/static/development/_devMiddlewareManifest.json",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:55.341Z"
+    },
+    {
+      "url": "http://31.57.166.18:3001/api/v1/printing/printers/public",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:56.225Z"
+    },
+    {
+      "url": "http://31.57.166.18:3001/api/v1/licenses/my-company",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:56.225Z"
+    },
+    {
+      "url": "http://31.57.166.18:3001/api/v1/licenses/notifications/my-company",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:56.225Z"
+    },
+    {
+      "url": "http://31.57.166.18:3001/api/v1/printing/service/status",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:56.440Z"
+    },
+    {
+      "url": "http://31.57.166.18:3001/api/v1/printing/phase4/analytics/system",
+      "method": "GET",
+      "timestamp": "2025-10-07T00:10:56.440Z"
+    },
+    {
+      "url": "http://31.57.166.18:3001/api/v1/printer-bridge/test-print",
+      "method": "POST",
+      "timestamp": "2025-10-07T00:10:58.855Z"
+    }
+  ],
+  "webSocketMessages": [],
+  "timestamps": {
+    "testStart": "2025-10-07T00:10:53.280Z",
+    "clickTime": "2025-10-07T00:10:58.630Z",
+    "responseTime": "2025-10-07T00:11:13.965Z",
+    "testEnd": "2025-10-07T00:11:14.308Z"
+  },
+  "analysis": {
+    "phase0FixWorking": false,
+    "webSocketConnected": false,
+    "anyErrors": true,
+    "criticalErrors": []
+  }
+}

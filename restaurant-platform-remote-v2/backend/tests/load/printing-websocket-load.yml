@@ -1,0 +1,193 @@
+# Artillery Load Test Configuration for PrinterMaster WebSocket System
+# Tests: 100 concurrent print requests, 10 Desktop App connections
+# Metrics: throughput, latency p95/p99, error rate, correlation ID uniqueness
+
+config:
+  target: "http://localhost:3001"
+  phases:
+    # Warm-up phase
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm-up"
+
+    # Ramp-up phase
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp-up"
+
+    # Sustained load phase
+    - duration: 120
+      arrivalRate: 100
+      name: "Sustained load - 100 concurrent requests"
+
+    # Peak load phase
+    - duration: 60
+      arrivalRate: 200
+      name: "Peak load - 200 concurrent requests"
+
+    # Cool-down phase
+    - duration: 30
+      arrivalRate: 10
+      name: "Cool-down"
+
+  processor: "./load-test-processor.js"
+
+  # WebSocket-specific configuration
+  ws:
+    proxy:
+      url: "http://localhost:3001"
+
+  # Performance thresholds
+  ensure:
+    p95: 500  # 95th percentile latency should be under 500ms
+    p99: 1000 # 99th percentile latency should be under 1000ms
+    maxErrorRate: 0.05 # Maximum 5% error rate
+
+  # Metrics plugins
+  plugins:
+    metrics-by-endpoint:
+      stripQueryString: true
+    statsd:
+      host: localhost
+      port: 8125
+      prefix: "artillery.printermaster"
+
+scenarios:
+  # Scenario 1: Web Client Print Requests
+  - name: "Web Client Print Requests"
+    engine: socketio
+    weight: 60
+    flow:
+      - connect:
+          namespace: "/printing-ws"
+          auth:
+            token: "{{ $randomString() }}"
+            userRole: "branch_manager"
+            branchId: "branch-{{ $randomNumber(1, 5) }}"
+            companyId: "company-1"
+
+      - think: 1
+
+      # Request printer status
+      - emit:
+          channel: "requestPrinterStatus"
+          data:
+            printerId: "printer-{{ $randomNumber(1, 10) }}"
+
+      - think: 2
+
+      # Submit print job
+      - emit:
+          channel: "submitPrintJob"
+          data:
+            printerId: "printer-{{ $randomNumber(1, 10) }}"
+            orderData:
+              orderId: "order-{{ $randomString() }}"
+              items:
+                - name: "Item 1"
+                  quantity: 2
+                  price: 10.99
+            priority: 1
+            type: "receipt"
+
+      - wait:
+          seconds: 5
+
+      - disconnect: {}
+
+  # Scenario 2: Desktop App Connections
+  - name: "Desktop App Connections"
+    engine: socketio
+    weight: 20
+    flow:
+      - connect:
+          namespace: "/printing-ws"
+          auth:
+            userRole: "desktop_app"
+            branchId: "branch-{{ $randomNumber(1, 5) }}"
+            companyId: "company-1"
+            deviceId: "device-{{ $randomString() }}"
+            instanceId: "instance-{{ $randomString() }}"
+            appVersion: "1.0.0"
+            licenseKey: "test-license-key"
+
+      - think: 2
+
+      # Send health report
+      - emit:
+          channel: "desktop:health:report"
+          data:
+            uptime: "{{ $randomNumber(1000, 10000) }}"
+            reconnectionCount: 0
+            averageLatency: "{{ $randomNumber(10, 100) }}"
+            packetLossRate: 0
+            totalPings: 100
+            successfulPongs: 100
+            connectionQuality: "excellent"
+            lastPongTime: "{{ $timestamp() }}"
+            connectionStartTime: "{{ $timestamp() }}"
+            branchId: "branch-{{ $randomNumber(1, 5) }}"
+            deviceId: "device-{{ $randomString() }}"
+            appVersion: "1.0.0"
+            timestamp: "{{ $timestamp() }}"
+
+      - wait:
+          seconds: 10
+
+      # Simulate printer discovery
+      - emit:
+          channel: "printer:discovered"
+          data:
+            id: "printer-{{ $randomString() }}"
+            name: "POS-{{ $randomNumber(1, 100) }}"
+            type: "thermal"
+            connection: "network"
+            status: "online"
+            branchId: "branch-{{ $randomNumber(1, 5) }}"
+            discoveredBy: "desktop_app"
+            discoveryMethod: "auto"
+            timestamp: "{{ $timestamp() }}"
+            capabilities: ["cut", "graphics", "barcode"]
+
+      - wait:
+          seconds: 15
+
+      - disconnect: {}
+
+  # Scenario 3: Printer Test Requests with Correlation IDs
+  - name: "Printer Test Requests"
+    engine: http
+    weight: 20
+    flow:
+      - post:
+          url: "/printing/printers/test"
+          json:
+            printerName: "POS-{{ $randomNumber(1, 100) }}"
+            branchId: "branch-{{ $randomNumber(1, 5) }}"
+            testType: "connectivity"
+          headers:
+            Authorization: "Bearer test-token-{{ $randomString() }}"
+          capture:
+            - json: "$.correlationId"
+              as: "correlationId"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: correlationId
+
+      - think: 1
+
+# Custom metrics to track
+metrics:
+  - name: "correlation_id_uniqueness"
+    description: "Percentage of unique correlation IDs"
+
+  - name: "websocket_connection_time"
+    description: "Time to establish WebSocket connection"
+
+  - name: "print_job_completion_time"
+    description: "End-to-end print job completion time"
+
+  - name: "health_report_processing_time"
+    description: "Time to process health reports"
