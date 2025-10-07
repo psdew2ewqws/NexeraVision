@@ -178,14 +178,118 @@ class PhysicalPrinterService {
 
     } catch (error) {
       console.error(`❌ [THERMAL] Thermal print failed:`, error);
+      console.log(`🔄 [THERMAL-FALLBACK] Attempting fallback to lp command...`);
 
-      // Try alternative methods for thermal printing
-      if (error.message.includes('ENOENT') || error.message.includes('permission')) {
-        return await this.printToThermalPrinterFallback(printerConfig, content);
+      // ALWAYS try lp command fallback when thermal fails
+      // This handles ESC/POS library failures, USB errors, permission issues, etc.
+      try {
+        const fallbackResult = await this.printViaLpCommand(printerConfig, content);
+        console.log(`✅ [THERMAL-FALLBACK] Successfully printed via lp command`);
+        return {
+          ...fallbackResult,
+          fallbackUsed: true,
+          originalError: error.message
+        };
+      } catch (fallbackError) {
+        console.error(`❌ [THERMAL-FALLBACK] lp command also failed:`, fallbackError);
+        throw new Error(`Thermal and fallback methods failed. Thermal: ${error.message}, lp: ${fallbackError.message}`);
       }
+    }
+  }
 
+  /**
+   * Print directly via lp command (CUPS) - Reliable fallback method
+   * This bypasses ESC/POS library issues and uses system printing directly
+   */
+  async printViaLpCommand(printerConfig, content) {
+    console.log(`🖨️ [LP-COMMAND] Printing via lp command to: ${printerConfig.name}`);
+
+    try {
+      const { exec } = require('child_process');
+      const util = require('util');
+      const execAsync = util.promisify(exec);
+      const os = require('os');
+      const fs = require('fs').promises;
+      const path = require('path');
+
+      // Format content as plain text for thermal printer
+      const textContent = this.formatContentForLpCommand(content);
+
+      // Create temporary file
+      const tmpDir = os.tmpdir();
+      const tmpFile = path.join(tmpDir, `thermal-print-${Date.now()}.txt`);
+
+      await fs.writeFile(tmpFile, textContent, 'utf8');
+
+      // Execute lp command (works on Linux/Mac)
+      const printCommand = `lp -d "${printerConfig.name}" "${tmpFile}"`;
+      console.log(`📝 [LP-COMMAND] Executing: ${printCommand}`);
+
+      await execAsync(printCommand);
+
+      // Clean up temp file
+      await fs.unlink(tmpFile).catch(() => {});
+
+      console.log(`✅ [LP-COMMAND] Print successful via lp command`);
+
+      return {
+        success: true,
+        message: `Physical printer test successful - ${printerConfig.name}`,
+        timestamp: new Date().toISOString(),
+        printerId: printerConfig.id || printerConfig.name,
+        method: 'lp_command',
+        printerType: 'thermal'
+      };
+
+    } catch (error) {
+      console.error(`❌ [LP-COMMAND] lp command failed:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Format content for lp command printing (plain text thermal receipt)
+   */
+  formatContentForLpCommand(content) {
+    let text = '';
+
+    // Header
+    text += '================================\n';
+    text += '    RESTAURANT PLATFORM\n';
+    text += '        TEST PRINT\n';
+    text += '================================\n\n';
+
+    // Printer info
+    text += `Printer: ${content.printerName || 'Unknown'}\n`;
+    text += `Type: ${content.printerType || 'THERMAL'}\n`;
+    text += `Time: ${content.timestamp || new Date().toLocaleString()}\n`;
+
+    if (content.branchName) {
+      text += `Branch: ${content.branchName}\n`;
+    }
+    if (content.companyName) {
+      text += `Company: ${content.companyName}\n`;
+    }
+
+    text += '================================\n\n';
+
+    // Test content
+    text += 'This is a test print to verify\n';
+    text += 'printer connectivity and\n';
+    text += 'functionality.\n\n';
+
+    // Character test
+    text += 'Print quality check:\n';
+    text += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ\n';
+    text += '0123456789\n';
+    text += 'Special chars: !@#$%^&*()\n\n';
+
+    // Status
+    text += '================================\n';
+    text += 'Status: SUCCESS\n';
+    text += '================================\n\n\n\n';
+
+    return text;
   }
 
   /**

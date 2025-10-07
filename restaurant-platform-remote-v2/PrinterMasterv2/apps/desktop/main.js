@@ -27,6 +27,32 @@ let deviceInfo = null;
 let discoveryService = null;
 let printerDetector = null;
 
+// ===================================================================
+// SINGLE INSTANCE LOCK - Prevents multiple Desktop App instances
+// ===================================================================
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  log.error('❌ Another PrinterMaster instance is already running. Exiting to prevent conflicts...');
+  log.info('💡 TIP: Only one Desktop App instance should run at a time to avoid printer access conflicts');
+  app.quit();
+  process.exit(0);
+} else {
+  log.info('✅ Single instance lock acquired successfully');
+
+  // Handle second instance attempt
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    log.warn('⚠️ Second instance attempted to start. Focusing existing window instead...');
+
+    // Focus the existing window
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      mainWindow.flashFrame(true);  // Flash the window to get user attention
+    }
+  });
+}
+
 // Initialize WebSocket module with shared references and config
 initializeWebSocketModule({
   log,
